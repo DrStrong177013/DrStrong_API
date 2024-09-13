@@ -25,8 +25,10 @@ dropZone.addEventListener('dragleave', () => {
 dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropZone.classList.remove('drag-over');
-    fileInput.files = e.dataTransfer.files;
-    handleFileChange();
+    if (e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        handleFileChange();
+    }
 });
 
 // File input change handler
@@ -53,12 +55,14 @@ function displayProgress(file) {
     const fileNameElem = document.createElement('span');
     fileNameElem.classList.add('file-name');
     fileNameElem.textContent = fileName;
+    
 
     const progressBarContainer = document.createElement('div');
     progressBarContainer.classList.add('progress-bar-container');
 
     const progressBar = document.createElement('div');
     progressBar.classList.add('progress-bar');
+    progressBar.style.width = '0%'; // Set initial width to 0%
 
     const percentageElem = document.createElement('span');
     percentageElem.classList.add('percentage');
@@ -70,10 +74,10 @@ function displayProgress(file) {
     progressBox.appendChild(progressBarContainer);
     progressBox.appendChild(percentageElem);
     progressArea.appendChild(progressBox);
-
     let uploaded = 0;
     const totalSize = file.size;
-    const uploadSpeed = 2048; // 2kb per second
+    const uploadSpeed = 2048 * 10; // 2kb per second
+    
 
     uploadTimeout = setInterval(() => {
         if (uploaded < totalSize) {
@@ -85,6 +89,8 @@ function displayProgress(file) {
             clearInterval(uploadTimeout);
             progressBar.style.width = '100%';
             percentageElem.textContent = '100%';
+            progressBox.classList.add('completed');
+            fileIcon.src = 'https://img.icons8.com/ios-filled/50/4caf50/checkmark.png'; // icon checkmark
         }
     }, 1000);
 }

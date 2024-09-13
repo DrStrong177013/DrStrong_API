@@ -10,8 +10,9 @@ body {
 }
 
 header {
-    font-size: 28px;
-    margin: 20px auto;
+    font-size: 30px;
+    text-align: center;
+    margin: 40px 30% 0px 30%;
     color: #333;
     font-weight: bold;
     text-transform: uppercase;
@@ -20,12 +21,12 @@ header {
 /* Drop Zone */
 .drop-zone {
     border: 3px dashed #ced4da;
-    padding: 50px;
+    padding: 70px 80px 30px 80px;
     position: relative;
     text-align: center;
     border-radius: 12px;
     cursor: pointer;
-    margin: auto;
+    margin: 0px 30% 100px 30%;
     max-width: 600px;
     background-color: #f1f3f5;
     transition: background-color 0.3s ease;
@@ -36,15 +37,15 @@ header {
 }
 
 .drop-zone i {
-    font-size: 48px;
-    color: #adb5bd;
+    font-size: 60px;
+    color: #007bff;
     margin-bottom: 15px;
 }
 
 .drop-zone p {
     font-size: 18px;
     color: #495057;
-    margin-bottom: 5px;
+    margin: 0px;
 }
 
 .file-info {
@@ -120,6 +121,20 @@ button#select-file-btn:hover {
     top: -25px;
 }
 
+/* Completed State */
+.progress-box.completed {
+    background-color: #e9ffe5; /* Light green background for completed upload */
+}
+
+.progress-box.completed .progress-bar {
+    background-color: #28a745; /* Green color for completed upload */
+}
+
+.progress-box.completed i.fas.fa-check-circle {
+    margin-left: 10px;
+    color: #28a745; /* Green color for success icon */
+}
+
 /* Upload Sidebar */
 .upload-sidebar {
     background-color: #f1f3f5;
@@ -134,7 +149,7 @@ button#select-file-btn:hover {
 
 .btn-upload {
     padding: 12px 30px;
-    margin-right: 4% ;
+    margin-right: 4%;
     background-color: #6c757d;
     color: white;
     border: none;
@@ -151,4 +166,9 @@ button#select-file-btn:hover {
 
 .btn-upload.enabled:hover {
     background-color: #0056b3;
+}
+
+/* Form */
+form {
+    margin-top: -20px; /* điều chỉnh theo nhu cầu */
 }
