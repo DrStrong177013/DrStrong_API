@@ -36,10 +36,18 @@ fileInput.addEventListener('change', handleFileChange);
 
 function handleFileChange() {
     const file = fileInput.files[0];
+    
+    // Clear existing progress area if a file is already uploaded
+    if (progressArea.firstChild) {
+        progressArea.innerHTML = '';
+    }
+    
     if (file) {
+        // Disable the upload button until the upload reaches 100%
+        uploadBtn.classList.remove('enabled');
+        uploadBtn.disabled = true;
+
         displayProgress(file);
-        uploadBtn.classList.add('enabled');
-        uploadBtn.disabled = false;
         uploadStarted = true;
     }
 }
@@ -55,7 +63,6 @@ function displayProgress(file) {
     const fileNameElem = document.createElement('span');
     fileNameElem.classList.add('file-name');
     fileNameElem.textContent = fileName;
-    
 
     const progressBarContainer = document.createElement('div');
     progressBarContainer.classList.add('progress-bar-container');
@@ -74,10 +81,10 @@ function displayProgress(file) {
     progressBox.appendChild(progressBarContainer);
     progressBox.appendChild(percentageElem);
     progressArea.appendChild(progressBox);
+
     let uploaded = 0;
     const totalSize = file.size;
     const uploadSpeed = 2048 * 10; // 2kb per second
-    
 
     uploadTimeout = setInterval(() => {
         if (uploaded < totalSize) {
@@ -85,12 +92,20 @@ function displayProgress(file) {
             const percentage = Math.min((uploaded / totalSize) * 100, 100);
             progressBar.style.width = `${percentage}%`;
             percentageElem.textContent = `${Math.floor(percentage)}%`;
+            
         } else {
             clearInterval(uploadTimeout);
             progressBar.style.width = '100%';
             percentageElem.textContent = '100%';
             progressBox.classList.add('completed');
             fileIcon.src = 'https://img.icons8.com/ios-filled/50/4caf50/checkmark.png'; // icon checkmark
+
+            // Enable upload button when progress is 100%
+            uploadBtn.classList.add('enabled');
+            uploadBtn.disabled = false;
         }
     }, 1000);
 }
+document.addEventListener('DOMContentLoaded', () => {
+    // Đặt mã JavaScript của bạn ở đây
+});

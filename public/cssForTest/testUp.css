@@ -3,19 +3,22 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
     height: 100vh;
     margin: 0;
     background-color: #f8f9fa;
 }
 
+
 header {
     font-size: 30px;
     text-align: center;
-    margin: 40px 30% 0px 30%;
+    margin: 2% 30% 5% 30%;
     color: #333;
     font-weight: bold;
     text-transform: uppercase;
+    padding: auto;
+ 
 }
 
 /* Drop Zone */
@@ -26,21 +29,29 @@ header {
     text-align: center;
     border-radius: 12px;
     cursor: pointer;
-    margin: 0px 30% 100px 30%;
-    max-width: 600px;
+    margin: auto;
+    max-width: 700px;
+    min-height: auto;
+    max-height: fit-content;
     background-color: #f1f3f5;
-    transition: background-color 0.3s ease;
+    margin-bottom: 3%;
+    transition: 0.5s ease;
+    
 }
 
 .drop-zone:hover {
-    background-color: #e9ecef;
+    border-style: hidden; 
+    background-color: #a7abaf34;
+    transform: scale(1.01);
 }
+
 
 .drop-zone i {
     font-size: 60px;
     color: #007bff;
-    margin-bottom: 15px;
+    
 }
+
 
 .drop-zone p {
     font-size: 18px;
@@ -67,18 +78,20 @@ button#select-file-btn {
 
 button#select-file-btn:hover {
     background-color: #0056b3;
+    border: none;
 }
 
 /* Progress Area */
 .progress-area {
     margin-top: 20px;
     text-align: left;
+    min-height: 170px; /* Chiều cao cố định cho khu vực thanh tiến trình */
 }
 
 .progress-box {
     display: flex;
     align-items: center;
-    margin: 20px 15% 30px 15%;
+    margin: 20px 15% 10% 15%;
     position: relative;
     background-color: #fff;
     padding: 10px;
@@ -110,6 +123,7 @@ button#select-file-btn:hover {
     height: 100%;
     border-radius: 6px;
     transition: width 0.4s ease;
+    
 }
 
 .percentage {
@@ -156,19 +170,20 @@ button#select-file-btn:hover {
     border-radius: 6px;
     font-size: 16px;
     cursor: not-allowed;
-    transition: background-color 0.3s ease;
+    transition: background-color 1s ease;
 }
 
 .btn-upload.enabled {
-    background-color: #007bff;
     cursor: pointer;
+  
+  display: block;
+  background: #007bff;
+  transition: 1.5s;
 }
+
 
 .btn-upload.enabled:hover {
     background-color: #0056b3;
 }
 
-/* Form */
-form {
-    margin-top: -20px; /* điều chỉnh theo nhu cầu */
-}
+

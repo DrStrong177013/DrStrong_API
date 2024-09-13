@@ -24,7 +24,7 @@
         <div><section class="progress-area"></section></div>
 
         <div class="upload-sidebar">
-            <button type="submit" class="btn-upload" disabled>Upload</button>
+            <button type="submit" class="btn-upload" disabled>Next</button>
         </div>
     </form>
 
