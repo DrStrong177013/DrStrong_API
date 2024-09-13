@@ -23,7 +23,7 @@ header {
 
 /* Drop Zone */
 .drop-zone {
-    border: 3px dashed #ced4da;
+
     padding: 70px 80px 30px 80px;
     position: relative;
     text-align: center;
@@ -40,7 +40,7 @@ header {
 }
 
 .drop-zone:hover {
-    border-style: hidden; 
+
     background-color: #a7abaf34;
     transform: scale(1.01);
 }
