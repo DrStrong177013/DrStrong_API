@@ -11,7 +11,7 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($testCases  as $testCase)
+            @forelse($testCases as $testCase)
                 <tr>
                     @foreach($testCase as $data)
                         <td>{{ $data }}</td>
