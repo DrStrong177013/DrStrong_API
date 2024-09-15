@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TestCaseController;
+use App\Http\Controllers\ApiTestController;
 
 // Route for showing the file upload form
 Route::get('/', function () {
@@ -15,3 +16,4 @@ Route::post('/upload-test-cases', [TestCaseController::class, 'uploadTestCases']
 Route::post('/process-selected-test-cases', [TestCaseController::class, 'processSelectedTestCases'])->name('processTestCases');
 
 
+// Route::get('/', [ApiTestController::class, 'runApiTestCases']);

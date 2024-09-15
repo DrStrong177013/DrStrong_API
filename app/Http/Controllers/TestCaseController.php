@@ -6,6 +6,7 @@ use App\Imports\TestCaseImport;
 use App\Services\ExcelService;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use GuzzleHttp\Client;
 
 class TestCaseController extends Controller
 {
@@ -60,26 +61,17 @@ class TestCaseController extends Controller
     ]);
 }
 
-
-
-
-
 public function processSelectedTestCases(Request $request)
 {
     $selectedIndexes = $request->input('selected_cases');
     $headers = $request->input('headers');
-    $remainingHeaders = $request->input('remaining_headers', []); // Lấy remaining_headers từ request
+    $remainingHeaders = $request->input('remaining_headers', []); 
     $filePath = $request->input('file_path');
 
     if ($selectedIndexes && $filePath) {
         $allTestCases = Excel::toArray(new TestCaseImport, storage_path('app/private/' . $filePath))[0];
 
-        // Cộng thêm 1 vào chỉ số của test case để xử lý đúng
-        $selectedIndexes = array_map(function ($index) {
-            return intval($index) + 1;
-        }, $selectedIndexes);
-
-        // Lọc test cases dựa trên selectedIndexes
+        // Lọc test cases dựa trên selectedIndexes mà không cộng thêm chỉ số
         $selectedTestCases = array_filter($allTestCases, function ($testCase, $index) use ($selectedIndexes) {
             return in_array(intval($index), $selectedIndexes);
         }, ARRAY_FILTER_USE_BOTH);
@@ -103,7 +95,7 @@ public function processSelectedTestCases(Request $request)
         }, $selectedTestCases);
 
         return view('test-cases.selected', [
-            'headers' => $completeHeaders, // Truyền headers đầy đủ
+            'headers' => $completeHeaders, 
             'testCases' => $orderedTestCases,
         ]);
     }

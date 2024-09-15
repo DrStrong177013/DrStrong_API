@@ -1,3 +1,31 @@
-.hidden-columns-template {
-    display: none;
+/* index.css */
+.method-label {
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: white;
+}
+
+.method-label[data-method="get"] {
+    color: green;
+}
+
+.method-label[data-method="post"] {
+    color: orange;
+}
+
+.method-label[data-method="delete"] {
+    color: red;
+}
+
+.method-label[data-method="put"] {
+    color: blue;
+}
+
+.fade-in {
+    animation: fadeIn 3s infinite;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f5f5f5;
 }

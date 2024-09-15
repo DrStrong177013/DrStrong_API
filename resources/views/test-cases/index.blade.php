@@ -6,34 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Test Case Display</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .method-label {
-        font-weight: bold;
-        padding: 5px 10px;
-        border-radius: 5px;
-        color: white; /* Màu chữ chung */
-    }
-
-    .method-label[data-method="get"] {
-        color: green; /* Màu chữ cho GET */
-    }
-
-    .method-label[data-method="post"] {
-        color: orange; /* Màu chữ cho POST */
-    }
-
-    .method-label[data-method="delete"] {
-        color: red; /* Màu chữ cho DELETE */
-    }
-
-    .method-label[data-method="put"] {
-        color: blue; /* Màu chữ cho PUT */
-    }
-    </style>
+    <link rel="stylesheet" href="{{ asset('cssForTest/loading.css') }}">
+    <link rel="stylesheet" href="{{ asset('cssForTest/index.css') }}">
 </head>
 
 <body>
-
+    @include('components.loading')
     <div class="container mt-4">
         <h2 class="text-center mb-4">Test Case Display</h2>
         <form method="POST" action="/process-selected-test-cases">
@@ -92,53 +70,9 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS và Script -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Chuyển dữ liệu từ Blade vào JavaScript
-        const remainingHeaders = @json($remainingHeaders);
-        const remainingTestCases = @json($remainingTestCases);
-
-        document.querySelectorAll('.test-case-row').forEach(row => {
-            row.addEventListener('click', function(event) {
-                // Kiểm tra xem có phải là click vào checkbox không
-                if (event.target.type === 'checkbox') {
-                    return; // Ngăn không mở modal nếu click vào checkbox
-                }
-
-                const index = this.getAttribute('data-index');
-                const detailModalBody = document.querySelector('#detailModal .modal-body');
-                detailModalBody.innerHTML = ''; // Reset nội dung modal
-
-                // Hiển thị dữ liệu trong modal
-                remainingHeaders.forEach((header, key) => {
-                    const value = remainingTestCases[index][key] ||
-                    'N/A'; // Default to 'N/A' if value is undefined
-                    detailModalBody.innerHTML += `<strong>${header}</strong>: ${value}<br>`;
-                });
-
-                // Hiển thị modal
-                const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
-                detailModal.show();
-            });
-        });
-
-        document.getElementById('selectAll').addEventListener('click', function() {
-            let checkboxes = document.querySelectorAll('input[name="selected_cases[]"]');
-            checkboxes.forEach(checkbox => checkbox.checked = this.checked);
-        });
-
-        document.querySelectorAll('input[name="selected_cases[]"]').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                let allCheckboxes = document.querySelectorAll('input[name="selected_cases[]"]');
-                let allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-                let noneChecked = Array.from(allCheckboxes).every(cb => !cb.checked);
-                document.getElementById('selectAll').checked = allChecked;
-                document.getElementById('selectAll').indeterminate = !allChecked && !noneChecked;
-            });
-        });
-    </script>
-
+    <script src="{{ asset('jsForTest/loading.js') }}"></script>
+    <script src="{{ asset('jsForTest/index.js') }}"></script>
 </body>
 
 </html>
