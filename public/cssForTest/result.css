@@ -1,0 +1,192 @@
+/* public\cssForTest\result.css */
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #fff;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    width: 100%;
+    overflow: hidden; /* Ngăn không cho nội dung tràn ra ngoài container */
+}
+
+.top-section {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    height: 35vh;
+    margin-bottom: 10px; /* Giảm khoảng cách giữa các phần */
+}
+
+.chart-container {
+    position: relative;
+    margin-right: 25%;
+    width: 220px; /* Cố định kích thước của chart */
+    height: 220px; /* Cố định kích thước của chart */
+}
+
+.chart-total {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.chart-total p {
+    font-size: 18px;
+    color: #7f8c8d;
+}
+
+.chart-total h2 {
+    font-size: 36px;
+    margin: 0;
+    color: #2c3e50;
+}
+
+
+
+.results-summary {
+    width: 400px; /* Cố định chiều rộng của bảng summary */
+    margin-left: 20%; /* Khoảng cách giữa chart và bảng summary */
+}
+
+.results-summary th, .results-summary td {
+    padding: 10px;
+    text-align: left;
+}
+.percent_th{
+    text-align: right !important; 
+}
+.th_center{
+    text-align: center !important; 
+}
+.results-summary th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+    border: none;
+
+}
+
+.results-summary .dot {
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.dot.red {
+    background-color: #e74c3c;
+}
+
+.dot.green {
+    background-color: #2ecc71;
+}
+
+.dot.blue {
+    background-color: #3498db;
+}
+
+.table-section {
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.test-case-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.test-case-table th, .test-case-table td {
+    padding: 12px;
+    text-align: left;
+}
+
+.test-case-table th {
+    background-color: #f2f2f2;
+}
+
+.test-case-table tr.even {
+    background-color: #f9f9f9;
+}
+
+.test-case-table tr.odd {
+    background-color: #fff;
+}
+
+.test-case-table .result {
+    color: #fff;
+    padding: none;
+}
+
+.result.passed .div_results {
+    background-color: #2ecc71;
+    padding: 5px;
+    width: min-content;
+    border-radius: 8px;
+}
+
+.result.failed .div_results {
+    background-color: #e74c3c;
+    padding: 5px;
+    width: min-content;
+    border-radius: 8px;
+}
+
+/* Method styling */
+.method-label {
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: white;
+    font-weight: 770;
+}
+
+.method-label[data-method="get"] {
+    color: green;
+}
+
+.method-label[data-method="post"] {
+    color: orange;
+}
+
+.method-label[data-method="delete"] {
+    color: red;
+}
+
+.method-label[data-method="put"] {
+    color: blue;
+}
+
+/* Status styling */
+.status {
+    font-weight: 770;
+}
+
+.status[data-status^="2"] {
+    color: green;
+}
+
+.status[data-status^="3"] {
+    color: blue;
+}
+
+.status[data-status^="4"], .status[data-status^="5"] {
+    color: red;
+}
+
+.test-case-table .testcase {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    
+}

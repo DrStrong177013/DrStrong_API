@@ -14,7 +14,7 @@
     @include('components.loading')
     <div class="container mt-4">
         <h2 class="text-center mb-4">Test Case Display</h2>
-        <form method="POST" action="/process-selected-test-cases">
+        <form method="POST" action="{{ route('sendTestCases') }}">
             @csrf
             <input type="hidden" name="file_path" value="{{ $filePath }}">
 
@@ -26,31 +26,26 @@
                 <thead>
                     <tr>
                         <th><input type="checkbox" id="selectAll"> Select All</th>
+                        {{-- <th>
+                            <div>
+                                <button id="selectAllCurrentPage">Chọn tất cả trên trang hiện tại</button>
+                                <button id="selectAllPages">Chọn tất cả test case</button>
+                            </div>
+                        </th> --}}
                         @foreach ($headers as $header)
                             <th>{{ $header }}</th>
                         @endforeach
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach ($testCases as $index => $testCase)
-                        <tr class="test-case-row" data-index="{{ $index }}">
-                            <td><input type="checkbox" name="selected_cases[]" value="{{ $index + 1 }}"></td>
-                            @foreach ($testCase as $key => $data)
-                                @if ($headers[$key] === 'Method')
-                                    <td><span class="method-label"
-                                            data-method="{{ strtolower($data) }}">{{ strtoupper($data) }}</span></td>
-                                @else
-                                    <td>{{ $data }}</td>
-                                @endif
-                            @endforeach
-                        </tr>
-                    @endforeach
+                <tbody id="testCasesTableBody">
+                    <!-- Test cases sẽ được hiển thị bằng JavaScript -->
                 </tbody>
+
             </table>
 
             <div class="d-flex justify-content-between btn-action">
                 <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
-                <button type="submit" class="btn btn-primary">Run</button>
+                <button type="submit" class="btn btn-primary" id="runButton">Run</button>
             </div>
         </form>
     </div>
@@ -69,6 +64,13 @@
             </div>
         </div>
     </div>
+    <script>
+        var remainingTestCases = @json($remainingTestCases) || [];
+        var remainingHeaders = @json($remainingHeaders) || [];
+        var testCases = @json($testCases) || [];
+        var headers = @json($headers) || [];
+    </script>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('jsForTest/loading.js') }}"></script>

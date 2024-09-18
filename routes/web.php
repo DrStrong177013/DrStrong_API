@@ -13,7 +13,8 @@ Route::get('/', function () {
 Route::post('/upload-test-cases', [TestCaseController::class, 'uploadTestCases'])->name('uploadTestCases');
 
 // Route for processing the selected test cases
-Route::post('/process-selected-test-cases', [TestCaseController::class, 'processSelectedTestCases'])->name('processTestCases');
+// Route::post('/process-selected-test-cases', [TestCaseController::class, 'processSelectedTestCases'])->name('processTestCases');
 
 
-// Route::get('/', [ApiTestController::class, 'runApiTestCases']);
+// routes/web.php
+Route::post('/send-test-cases', [TestCaseController::class, 'sendTestCases'])->name('sendTestCases');

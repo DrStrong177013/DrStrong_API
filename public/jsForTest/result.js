@@ -7,6 +7,7 @@ document.getElementById('selectAll').addEventListener('click', function () {
         checkbox.checked = this.checked;
         selectedTestCases[checkbox.value] = this.checked; // Lưu trạng thái test case
     });
+    console.log('Select All Clicked:', selectedTestCases); // Kiểm tra trạng thái sau khi chọn tất cả
     toggleRunButton(); // Gọi hàm để cập nhật trạng thái nút Run
 });
 
@@ -14,7 +15,7 @@ document.getElementById('selectAll').addEventListener('click', function () {
 document.querySelectorAll('input[name="selected_cases[]"]').forEach(checkbox => {
     checkbox.addEventListener('change', function () {
         selectedTestCases[this.value] = this.checked; // Lưu trạng thái test case
-        console.log('Updated selectedTestCases:', selectedTestCases); // Debug: Kiểm tra trạng thái của selectedTestCases
+        console.log('Checkbox Changed:', selectedTestCases); // Kiểm tra trạng thái sau khi thay đổi checkbox
         updateSelectAllState(); // Cập nhật lại trạng thái nút "Select All"
         toggleRunButton(); // Gọi hàm để cập nhật trạng thái nút Run
     });
@@ -24,9 +25,9 @@ document.querySelectorAll('input[name="selected_cases[]"]').forEach(checkbox => 
 function toggleRunButton() {
     const runButton = document.getElementById('runButton');
     const selectedTestCasesCount = Object.values(selectedTestCases).filter(val => val).length; // Đếm số test case đã chọn
-    console.log('Selected Test Cases Count:', selectedTestCasesCount); // Debug: Kiểm tra số lượng test cases đã chọn
+    console.log('Selected Test Cases Count:', selectedTestCasesCount); // Kiểm tra số lượng test case đã chọn
 
-    // Nếu có ít nhất một test case được chọn, bật nút Run, ngược lại disable nó
+    // Bật nút "Run" nếu có ít nhất một test case được chọn
     runButton.disabled = selectedTestCasesCount === 0;
 }
 
@@ -37,6 +38,7 @@ function updateSelectAllState() {
     let noneChecked = Array.from(currentCheckboxes).every(cb => !cb.checked);
     document.getElementById('selectAll').checked = allChecked;
     document.getElementById('selectAll').indeterminate = !allChecked && !noneChecked;
+    console.log('Select All State Updated: allChecked:', allChecked, 'noneChecked:', noneChecked); // Kiểm tra trạng thái nút "Select All"
 }
 
 // Hàm render bảng test cases
