@@ -159,8 +159,10 @@ public function sendTestCases(Request $request)
     // Bỏ qua hàng đầu tiên (header)
     $testCasesData = array_slice($allTestCases, 1);
 
-    // Đảm bảo rằng chỉ số của test case là số nguyên
-    $selectedCases = array_map('intval', $selectedCases);
+    // Đảm bảo rằng chỉ số của test case là số nguyên 
+    $selectedCases = array_map(function($case) {
+        return intval($case) ;
+    }, $selectedCases);
 
     // Các header mà bạn muốn có trong kết quả cuối cùng
     $completeHeaders = [
@@ -213,8 +215,10 @@ public function sendTestCases(Request $request)
 
         $orderedRowAssoc = array_combine($completeHeaders, $orderedRow);
 
-        // Kiểm tra xem test case này có được chọn hay không
-        if (in_array($index, $selectedCases)) {
+        // Cộng thêm 1 vào chỉ số test case
+        $adjustedIndex = $index + 1;
+
+        if (in_array($adjustedIndex, $selectedCases)) {
             try {
                 Log::info('Sending request', ['endpoint' => $orderedRowAssoc['EndPoint']]);
                 $response = Http::withToken($orderedRowAssoc['Token'])
@@ -252,7 +256,6 @@ public function sendTestCases(Request $request)
     // Trả về tất cả test case (bao gồm cả những cái không được chọn)
     return view('test-cases.results', ['results' => $orderedTestCases, 'headers' => $completeHeaders]);
 }
-
 
 
 
