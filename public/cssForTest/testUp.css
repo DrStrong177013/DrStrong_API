@@ -164,21 +164,18 @@ button#select-file-btn:hover {
 .btn-upload {
     padding: 12px 30px;
     margin-right: 4%;
-    background-color: #6c757d;
+    background-color: #ccc; /* Màu mặc định khi nút bị vô hiệu hóa */
     color: white;
     border: none;
     border-radius: 6px;
     font-size: 16px;
     cursor: not-allowed;
-    transition: background-color 1s ease;
+    transition: background-color 0.5s ease, cursor 0.3s ease;
 }
 
 .btn-upload.enabled {
-    cursor: pointer;
-  
-  display: block;
-  background: #007bff;
-  transition: 1.5s;
+    background-color: #398dd7; /* Màu khi nút được kích hoạt */
+    cursor: pointer; /* Con trỏ chuột chỉ thay đổi khi nút được kích hoạt */
 }
 
 
@@ -187,3 +184,11 @@ button#select-file-btn:hover {
 }
 
 
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out forwards; /* Hiệu ứng chạy 1 lần */
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}

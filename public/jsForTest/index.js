@@ -11,23 +11,33 @@ document.getElementById('selectAll').addEventListener('click', function () {
 });
 
 // Hàm xử lý khi chọn/deselect từng test case
-document.querySelectorAll('input[name="selected_cases[]"]').forEach(checkbox => {
-    checkbox.addEventListener('change', function () {
-        selectedTestCases[this.value] = this.checked; // Lưu trạng thái test case
-        console.log('Updated selectedTestCases:', selectedTestCases); // Debug: Kiểm tra trạng thái của selectedTestCases
-        updateSelectAllState(); // Cập nhật lại trạng thái nút "Select All"
-        toggleRunButton(); // Gọi hàm để cập nhật trạng thái nút Run
+function setupCheckboxEvents() {
+    document.querySelectorAll('input[name="selected_cases[]"]').forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            selectedTestCases[this.value] = this.checked; // Lưu trạng thái test case
+            console.log('Updated selectedTestCases:', selectedTestCases); // Debug: Kiểm tra trạng thái của selectedTestCases
+            updateSelectAllState(); // Cập nhật lại trạng thái nút "Select All"
+            toggleRunButton(); // Gọi hàm để cập nhật trạng thái nút Run
+        });
     });
-});
+}
 
+// Hàm bật/tắt nút Run dựa trên số lượng test case đã chọn
 // Hàm bật/tắt nút Run dựa trên số lượng test case đã chọn
 function toggleRunButton() {
     const runButton = document.getElementById('runButton');
     const selectedTestCasesCount = Object.values(selectedTestCases).filter(val => val).length; // Đếm số test case đã chọn
-    console.log('Selected Test Cases Count:', selectedTestCasesCount); // Debug: Kiểm tra số lượng test cases đã chọn
 
     // Nếu có ít nhất một test case được chọn, bật nút Run, ngược lại disable nó
-    runButton.disabled = selectedTestCasesCount === 0;
+    if (selectedTestCasesCount > 0) {
+        runButton.disabled = false; // Bật nút Run
+        runButton.style.cursor = "pointer"; // Đổi con trỏ chuột khi có thể nhấn
+        runButton.style.backgroundColor = "#398dd7"; // Đổi màu nền
+    } else {
+        runButton.disabled = true; // Disable nút Run
+        runButton.style.cursor = "not-allowed"; // Con trỏ chuột không thể nhấn
+        runButton.style.backgroundColor = "#ccc"; // Đổi màu nền sang xám
+    }
 }
 
 // Hàm cập nhật trạng thái của "Select All"
@@ -42,26 +52,35 @@ function updateSelectAllState() {
 // Hàm render bảng test cases
 function renderTable() {
     const tableBody = document.getElementById('testCasesTableBody');
-    tableBody.innerHTML = ''; // Xóa nội dung hiện tại
+    const fragment = document.createDocumentFragment(); // Sử dụng DocumentFragment để giảm thay đổi DOM
 
     testCases.forEach((testCase, index) => {
         let isChecked = selectedTestCases[index + 1] ? 'checked' : ''; // Kiểm tra trạng thái đã lưu
-        let row = `<tr class="test-case-row" data-index="${index + 1}">
-                    <td><input type="checkbox" name="selected_cases[]" value="${index + 1}" ${isChecked}></td>`;
+        let row = document.createElement('tr');
+        row.classList.add('test-case-row');
+        row.setAttribute('data-index', index + 1);
+
+        let checkboxCell = document.createElement('td');
+        checkboxCell.innerHTML = `<input type="checkbox" name="selected_cases[]" value="${index + 1}" ${isChecked}>`;
+        row.appendChild(checkboxCell);
 
         testCase.forEach((data, key) => {
+            let cell = document.createElement('td');
             if (headers[key] === 'Method') {
-                row += `<td><span class="method-label" data-method="${data.toLowerCase()}">${data.toUpperCase()}</span></td>`;
+                cell.innerHTML = `<span class="method-label" data-method="${data.toLowerCase()}">${data.toUpperCase()}</span>`;
             } else {
-                row += `<td>${data}</td>`;
+                cell.textContent = data;
             }
+            row.appendChild(cell);
         });
 
-        row += '</tr>';
-        tableBody.innerHTML += row;
+        fragment.appendChild(row);
     });
 
+    tableBody.innerHTML = ''; // Xóa nội dung hiện tại
+    tableBody.appendChild(fragment); // Thêm nội dung mới
     setupRowClickEvent();  // Thêm sự kiện click cho các dòng mới
+    setupCheckboxEvents(); // Thiết lập lại sự kiện cho checkbox
     updateSelectAllState(); // Cập nhật trạng thái của Select All
     toggleRunButton(); // Cập nhật lại nút "Run" theo các test case đã chọn
 }
@@ -102,10 +121,8 @@ document.getElementById('runButton').addEventListener('click', function () {
     let selectedCases = Object.keys(selectedTestCases).filter(key => selectedTestCases[key]); // Lấy các test case đã chọn
 
     if (selectedCases.length > 0) {
-        // Gửi các test case đã được chọn để xử lý
         console.log('Running Selected Test Cases:', selectedCases); // Gửi các test case đã chọn (hoặc in ra console)
         // Gửi request với các test case đã chọn (tùy thuộc vào logic xử lý của bạn)
-        // Ví dụ:
         // axios.post('/run-test-cases', { testCases: selectedCases })
         //     .then(response => console.log(response.data));
     } else {

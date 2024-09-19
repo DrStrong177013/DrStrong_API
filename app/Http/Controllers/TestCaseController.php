@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 use GuzzleHttp\Client;
+use Psy\Readline\Hoa\Console;
 
 class TestCaseController extends Controller
 {
@@ -148,208 +149,138 @@ public function sendTestCases(Request $request)
     $selectedCases = $request->input('selected_cases');
     $filePath = $request->input('file_path');
 
-    if ($selectedCases && $filePath) {
-        // Đọc tất cả test cases từ file Excel
-        $allTestCases = Excel::toArray(new TestCaseImport, storage_path('app/private/' . $filePath))[0];
+    if (!$selectedCases || !$filePath) {
+        return back()->with('error', !$selectedCases ? 'Không có test case nào được chọn.' : 'Không tìm thấy file.');
+    }
 
-        // Chuyển đổi chỉ số test case sang số nguyên
-        $selectedCases = array_map('intval', $selectedCases);
+    // Đọc tất cả test cases từ file Excel
+    $allTestCases = Excel::toArray(new TestCaseImport, storage_path('app/private/' . $filePath))[0];
 
-        // Lọc các test cases đã chọn
-        $selectedTestCases = array_filter($allTestCases, function ($testCase, $index) use ($selectedCases) {
-            return in_array($index, $selectedCases);
-        }, ARRAY_FILTER_USE_BOTH);
+    // Bỏ qua hàng đầu tiên (header)
+    $testCasesData = array_slice($allTestCases, 1);
 
-        // Đặt thứ tự các header mong muốn, thêm ActualStatusCode
-        $completeHeaders = [
-            'Refs',
-            'Testcase',
-            'EndPoint',
-            'Method',
-            'Token',
-            'Body',
-            'StatusCode',
-            'ExpectedResult',
-            'ActualStatusCode',
-            'Actual Response',
-            'Result'
-        ];
+    // Đảm bảo rằng chỉ số của test case là số nguyên
+    $selectedCases = array_map('intval', $selectedCases);
 
-        // Tạo một mảng chỉ số cho từng header trong completeHeaders dựa trên thứ tự của allTestCases[0]
-        $headerIndices = array_flip($allTestCases[0]);
+    // Các header mà bạn muốn có trong kết quả cuối cùng
+    $completeHeaders = [
+        'Refs', 'Testcase', 'EndPoint', 'Method', 'Token', 'Body',
+        'StatusCode', 'ExpectedResult', 'ActualStatusCode', 'Actual Response', 'Result'
+    ];
 
-        // Helper function to determine ActualStatusCode in case of errors
-        function getFallbackStatusCode(\Exception $e)
-        {
-            if ($e instanceof \Illuminate\Http\Client\RequestException) {
-                return $e->getCode() ?: 500;  // Fallback to 500 if no code available
-            }
-            return 500;  // Default to server error
+    $headerIndices = array_flip($allTestCases[0]); // Sử dụng hàng đầu tiên làm header
+
+    // Hàm so sánh JSON với ký tự đại diện
+    $compareJsonWithWildcards = function($expected, $actual) {
+        $expected = str_replace("'", '"', $expected);
+        $actual = str_replace("'", '"', $actual);
+
+        if (trim($expected) === '[...]') {
+            $actualArray = json_decode($actual, true);
+            return is_array($actualArray) && !empty($actualArray);
         }
 
-        // Function to compare JSON structures ignoring formatting issues like spaces and line breaks
-        function compareJsonStructures($expected, $actual)
-        {
-            // Decode JSON strings into arrays for comparison
-            $expectedArray = json_decode($expected, true);
-            $actualArray = json_decode($actual, true);
+        $expectedArray = json_decode($expected, true);
+        $actualArray = json_decode($actual, true);
 
-            // Check if both are valid JSON
-            if (json_last_error() === JSON_ERROR_NONE) {
-                // Deep compare arrays (even nested ones)
-                return deepCompareArrays($expectedArray, $actualArray);
-            }
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            Log::error('JSON Decode Error: ' . json_last_error_msg());
             return false;
         }
 
-        function compareJsonWithWildcards($expected, $actual)
-        {
-            // Decode both expected and actual results
-            $expectedArray = json_decode($expected, true);
-            $actualArray = json_decode($actual, true);
-
-            // Check if expected result contains "..." (wildcard) for ignoring parts of the result
-            if (is_string($expected) && strpos($expected, '...') !== false) {
-                // Treat '...' as a wildcard, remove it from comparison
-                $normalizedExpected = preg_replace('/\.\.\./', '', $expected);
-                return strpos($actual, $normalizedExpected) !== false;
+        if (is_array($expectedArray) && is_array($actualArray)) {
+            foreach ($expectedArray as $key => $value) {
+                if ($value === '...') {
+                    continue;
+                }
+                if (!array_key_exists($key, $actualArray) || !$this->deepCompareArrays($value, $actualArray[$key])) {
+                    return false;
+                }
             }
-
-            // Check if both are valid JSON and proceed to comparison
-            if (json_last_error() === JSON_ERROR_NONE) {
-                // Compare arrays deeply if they are valid JSON
-                return deepCompareArrays($expectedArray, $actualArray);
-            }
-
-            // If they are not JSON, treat them as strings and do a string comparison
-            return trim($expected) === trim($actual);
+            return true;
         }
 
-        // Function to deeply compare arrays, allowing for wildcards
-        function deepCompareArrays($expected, $actual)
-        {
-            if (is_array($expected) && is_array($actual)) {
-                // Handle case where expected result is an array with '[...]' wildcard
-                if (count($expected) === 1 && $expected[0] === '...') {
-                    // Accept any array for '...' wildcard
-                    return is_array($actual);
-                }
+        return trim($expected) === trim($actual);
+    };
 
-                // Compare each key-value pair in the arrays
-                foreach ($expected as $key => $value) {
-                    if (!array_key_exists($key, $actual) || !deepCompareArrays($value, $actual[$key])) {
-                        return false;
-                    }
-                }
-                return true;
-            } elseif (is_string($expected) && is_string($actual)) {
-                // Compare strings after trimming spaces
-                return trim($expected) === trim($actual);
-            } else {
-                // Direct comparison for other data types
-                return $expected === $actual;
-            }
+    // Xử lý tất cả test case và chỉ so sánh với test case được chọn
+    $orderedTestCases = array_map(function($testCase, $index) use ($completeHeaders, $headerIndices, $selectedCases, $compareJsonWithWildcards) {
+        $orderedRow = [];
+        foreach ($completeHeaders as $header) {
+            $indexHeader = $headerIndices[$header] ?? null;
+            $orderedRow[] = $indexHeader !== null && isset($testCase[$indexHeader]) ? $testCase[$indexHeader] : 'Failed';
         }
 
-        // Đặt thứ tự các cột trong test cases theo completeHeaders và thêm so sánh ExpectedResult với Actual Response
-        $orderedTestCases = array_map(function ($testCase) use ($completeHeaders, $headerIndices) {
-            $orderedRow = [];
-            foreach ($completeHeaders as $header) {
-                $index = $headerIndices[$header] ?? null;
-                $orderedRow[] = $index !== null && isset($testCase[$index]) ? $testCase[$index] : 'Failed';
-            }
+        $orderedRowAssoc = array_combine($completeHeaders, $orderedRow);
 
-            // Chuyển dữ liệu vào mảng theo thứ tự headers mong muốn
-            $orderedRowAssoc = array_combine($completeHeaders, $orderedRow);
-
-            // Thực hiện kiểm tra API
+        // Kiểm tra xem test case này có được chọn hay không
+        if (in_array($index, $selectedCases)) {
             try {
-                // Ghi log trước khi gửi request
-                Log::info('Sending request to API', [
-                    'url' => $orderedRowAssoc['EndPoint'],
-                    'method' => $orderedRowAssoc['Method'],
-                    'body' => $orderedRowAssoc['Body']
-                ]);
-
+                Log::info('Sending request', ['endpoint' => $orderedRowAssoc['EndPoint']]);
                 $response = Http::withToken($orderedRowAssoc['Token'])
                     ->{$orderedRowAssoc['Method']}(
                         $orderedRowAssoc['EndPoint'],
                         json_decode($orderedRowAssoc['Body'], true)
                     );
 
-                // Ghi log khi nhận response
-                Log::info('Received response', [
-                    'status_code' => $response->status(),
-                    'response_body' => $response->body()
-                ]);
-
-                // Lưu Actual Response và ActualStatusCode nếu API thành công
                 $orderedRowAssoc['ActualStatusCode'] = $response->status();
                 $orderedRowAssoc['Actual Response'] = $response->body();
             } catch (\Exception $e) {
-                // Ghi log lỗi nếu có exception
-                Log::error('API error for ' . $orderedRowAssoc['Refs'] . ': ' . $e->getMessage());
-
-                // Ghi log về lỗi ngoại lệ và trả về status code mặc định
-                $orderedRowAssoc['ActualStatusCode'] = getFallbackStatusCode($e);
+                Log::error('Request error: ' . $e->getMessage());
+                $orderedRowAssoc['ActualStatusCode'] = 500;
                 $orderedRowAssoc['Actual Response'] = 'Error: ' . $e->getMessage();
             }
 
-            // So sánh ActualStatusCode với StatusCode
-            if (isset($orderedRowAssoc['StatusCode']) && isset($orderedRowAssoc['ActualStatusCode'])) {
-                if ((string) $orderedRowAssoc['StatusCode'] !== (string) $orderedRowAssoc['ActualStatusCode']) {
-                    // Ghi log nếu status code không khớp
-                    Log::warning('Mismatched status code', [
-                        'expected' => $orderedRowAssoc['StatusCode'],
-                        'actual' => $orderedRowAssoc['ActualStatusCode']
-                    ]);
-
-                    // Ghi lại khác biệt về status code vào Actual Response
-                    $orderedRowAssoc['Actual Response'] .= ' | Expect status ' . $orderedRowAssoc['StatusCode'] . ' but response ' . $orderedRowAssoc['ActualStatusCode'];
-                    $orderedRowAssoc['Result'] = 'Failed';
-                }
-            }
-
-            // So sánh ExpectedResult với Actual Response
-            if (isset($orderedRowAssoc['ExpectedResult']) && isset($orderedRowAssoc['Actual Response'])) {
-                $expectedResult = $orderedRowAssoc['ExpectedResult'];
-                $actualResponse = $orderedRowAssoc['Actual Response'];
-
-                // Ghi log trước khi so sánh JSON
-                Log::info('Comparing results', [
-                    'expected' => $expectedResult,
-                    'actual' => $actualResponse
-                ]);
-
-                // So sánh JSON hoặc chuỗi, cho phép dấu '...' trong ExpectedResult
-                if (compareJsonWithWildcards($expectedResult, $actualResponse)) {
-                    $orderedRowAssoc['Result'] = 'Passed';
-                } else {
-                    $orderedRowAssoc['Result'] = 'Failed';
-                }
+            // So sánh Status Code và Response cho các test case được chọn
+            if ($orderedRowAssoc['ActualStatusCode'] !== (int)$orderedRowAssoc['StatusCode']) {
+                $orderedRowAssoc['Result'] = 'Failed';
+            } else if ($compareJsonWithWildcards($orderedRowAssoc['ExpectedResult'], $orderedRowAssoc['Actual Response'])) {
+                $orderedRowAssoc['Result'] = 'Passed';
             } else {
-                // Nếu thiếu ExpectedResult hoặc Actual Response, đánh dấu là "Failed"
                 $orderedRowAssoc['Result'] = 'Failed';
             }
-
-            return $orderedRowAssoc;
-        }, $selectedTestCases);
-
-        // Trả về trang kết quả với danh sách kết quả
-        return view('test-cases.results', [
-            'results' => $orderedTestCases,
-            'headers' => $completeHeaders
-        ]);
-    } else {
-        // Xử lý khi thiếu test cases hoặc file path
-        if (!$selectedCases) {
-            return back()->with('error', 'Không có test case nào được chọn.');
+        } else {
+            // Đối với test case không được chọn, bỏ qua so sánh và đánh dấu kết quả là 'Untested'
+            $orderedRowAssoc['ActualStatusCode'] = 'N/A';
+            $orderedRowAssoc['Actual Response'] = '';
+            $orderedRowAssoc['Result'] = 'Untested';
         }
-        if (!$filePath) {
-            return back()->with('error', 'Không tìm thấy file.');
-        }
-    }
+
+        return $orderedRowAssoc;
+    }, $testCasesData, array_keys($testCasesData));
+
+    // Trả về tất cả test case (bao gồm cả những cái không được chọn)
+    return view('test-cases.results', ['results' => $orderedTestCases, 'headers' => $completeHeaders]);
 }
+
+
+
+
+// Thêm hàm deepCompareArrays như một phương thức của lớp
+private function deepCompareArrays($expected, $actual)
+{
+    // Kiểm tra xem $expected và $actual có phải là mảng không
+    if (is_array($expected) && is_array($actual)) {
+        // Nếu $expected là mảng với một phần tử và phần tử đó là '...', trả về true nếu $actual là mảng
+        if (count($expected) === 1 && isset($expected[0]) && $expected[0] === '...') {
+            return is_array($actual);
+        }
+
+        // So sánh các phần tử của hai mảng
+        foreach ($expected as $key => $value) {
+            if (!array_key_exists($key, $actual) || !$this->deepCompareArrays($value, $actual[$key])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // So sánh giá trị của $expected và $actual
+    return $expected === $actual;
+}
+
+
+
 
 
 }

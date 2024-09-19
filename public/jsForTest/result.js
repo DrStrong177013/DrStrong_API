@@ -1,10 +1,8 @@
-
 let failedCount = 0;
 let passedCount = 0;
 let untestedCount = 0;
 
-
-// Đếm số lượng
+// Đếm số lượng các kết quả
 results.forEach(result => {
     if (result.Result === 'Passed') {
         passedCount++;
@@ -72,21 +70,98 @@ const chart = new Chart(ctx, {
                         return label;
                     }
                 }
-            },
-            datalabels: {
-                display: true,
-                color: '#fff',
-                font: {
-                    weight: 'bold',
-                    size: 18
-                },
-                formatter: function(value, context) {
-                    if (context.dataIndex === 1) {
-                        return context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                    }
-                    return '';
-                }
             }
         }
     }
 });
+
+// Xử lý khi click vào test case trong bảng
+document.addEventListener('DOMContentLoaded', () => {
+    const tableRows = document.querySelectorAll('.test-case-table tbody tr');
+    const modal = document.getElementById('testCaseModal');
+    const closeBtn = document.querySelector('.modal .close');
+    const modalBody = document.getElementById('modal-body');
+
+    tableRows.forEach(row => {
+        row.addEventListener('click', () => {
+            const testcaseContent = row.querySelector('.testcase').textContent.trim();
+            const result = results.find(item => item.Testcase === testcaseContent);
+
+            if (result) {
+                let formattedActualResponse = '';
+
+                try {
+                    if (typeof result['Actual Response'] === 'string' && result['Actual Response'].startsWith('{')) {
+                        const actualResponseObject = JSON.parse(result['Actual Response']);
+                        formattedActualResponse = JSON.stringify(actualResponseObject, null, 4);
+                    } else {
+                        formattedActualResponse = result['Actual Response'] || 'N/A';
+                    }
+                } catch (e) {
+                    formattedActualResponse = result['Actual Response'] || 'N/A';
+                }
+
+                // Cập nhật nội dung modal
+                modalBody.innerHTML = `
+                    <p><strong>Refs:</strong> ${result.Refs || 'N/A'}</p>
+                    <p><strong>Testcase:</strong> ${result.Testcase || 'N/A'}</p>
+                    <p><strong>EndPoint:</strong> ${result.EndPoint || 'N/A'}</p>
+                    <p><strong>Method:</strong> ${result.Method || 'N/A'}</p>
+                    <p><strong>Token:</strong> ${result.Token || 'N/A'}</p>
+                    <p><strong>Body:</strong> ${result.Body || 'N/A'}</p>
+                    <p><strong>StatusCode:</strong> ${result.StatusCode || 'N/A'}</p>
+                    <p><strong>ExpectedResult:</strong> ${result.ExpectedResult || 'N/A'}</p>
+                    <p><strong>ActualStatusCode:</strong> ${result.ActualStatusCode || 'N/A'}</p>
+                    <p><strong>Actual Response:</strong> <pre>${formattedActualResponse}</pre></p>
+                    <p><strong>Result:</strong> ${result.Result || 'N/A'}</p>
+                `;
+                modal.style.display = 'block';
+            }
+        });
+    });
+
+    closeBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+});
+
+// Bộ lọc kết quả test case
+document.addEventListener('DOMContentLoaded', () => {
+    const filterButtons = document.querySelectorAll('.filter-button');
+    const tableRows = document.querySelectorAll('.test-case-table tbody tr');
+
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const filter = button.getAttribute('data-filter');
+            filterTable(filter);
+        });
+    });
+
+    function filterTable(filter) {
+        let hasVisibleRows = false; // Biến kiểm tra xem có hàng nào hiển thị không
+        tableRows.forEach(row => {
+            const resultCell = row.querySelector('.result');
+            if (filter === 'all' || resultCell.classList.contains(filter)) {
+                row.style.display = '';
+                hasVisibleRows = true;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const messageElement = document.getElementById('noTestCasesMessage');
+        if (!hasVisibleRows) {
+            messageElement.innerText = `Don't have any test case with ${filter} Results`;
+            messageElement.style.display = 'block';
+        } else {
+            messageElement.style.display = 'none';
+        }
+    }
+});
+

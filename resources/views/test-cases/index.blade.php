@@ -43,9 +43,9 @@
 
             </table>
 
-            <div class="d-flex justify-content-between btn-action">
+            <div class="d-flex justify-content-between btn-action upload-sidebar">
                 <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
-                <button type="submit" class="btn btn-primary" id="runButton">Run</button>
+                <button type="submit" class="btn btn-run" id="runButton" disabled>Run</button>
             </div>
         </form>
     </div>
