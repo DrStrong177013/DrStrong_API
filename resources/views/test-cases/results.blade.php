@@ -12,6 +12,7 @@
 </head>
 
 <body>
+    
     <div class="container">
         <div class="top-section">
             <div class="chart-container">
@@ -70,11 +71,11 @@
                                 <div class="div_results">{{ $result['Result'] ?? 'N/A' }}</div>
                             </td>
 
-                            <td class="method method-label th_center" data-method="{{ strtolower($result['Method']) }}">
+                            <td class="method method-label th_center" data-method="{{ strtolower($result['Method'])  ?? 'N/A' }}">
                                 {{ strtoupper($result['Method']) ?? 'N/A' }}
                             </td>
                             <td class="testcase">
-                                {{ Str::limit($result['Testcase'], 50, '...') ?? 'N/A'}}
+                                {{ Str::limit($result['Testcase'], 85, '...') ?? 'N/A'}}
                             </td>
                             <td class="status th_center" data-status="{{ $result['ActualStatusCode'] ?? 'N/A' }}">
                                 {{ $result['ActualStatusCode'] ?? 'N/A' }}
@@ -86,7 +87,7 @@
         </div>
     </div>
     <script>
-        const results = {!! json_encode($results) !!};
+        const results = Object.values({!! json_encode($results) !!});
     </script>
 
     <script src="{{ asset('jsForTest/result.js') }}"></script>
