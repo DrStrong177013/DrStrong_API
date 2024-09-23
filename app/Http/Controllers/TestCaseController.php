@@ -8,9 +8,9 @@ use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-
-use GuzzleHttp\Client;
-use Psy\Readline\Hoa\Console;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\ConnectException;
+use Illuminate\Support\Facades\Storage;
 
 class TestCaseController extends Controller
 {
@@ -64,122 +64,136 @@ class TestCaseController extends Controller
             'filePath' => $path,
         ]);
     }
+    public function sendTestCases(Request $request)
+    {
+        $selectedCases = $request->input('selected_cases');
+        $filePath = $request->input('file_path');
+        if (!$selectedCases || !$filePath) {
+            return back()->with('error', !$selectedCases ? 'Không có test case nào được chọn.' : 'Không tìm thấy file.');
+        }
 
-    //     public function sendTestCases(Request $request)
-// {
-//     $selectedCases = $request->input('selected_cases');
-//     $filePath = $request->input('file_path');
+        try {
+            $allTestCases = Excel::toArray(new TestCaseImport, storage_path('app/private/' . $filePath))[0];
 
-    //     if ($selectedCases && $filePath) {
-//         // Đọc tất cả test cases từ file Excel
-//         $allTestCases = Excel::toArray(new TestCaseImport, storage_path('app/private/' . $filePath))[0];
+            // Bỏ qua hàng đầu tiên (header)
+            $testCasesData = array_slice($allTestCases, 1);
 
-    //         // Chuyển đổi chỉ số test case sang số nguyên
-//         $selectedCases = array_map('intval', $selectedCases);
+            // Các header mà bạn muốn có trong kết quả cuối cùng
+            $completeHeaders = [
+                'Refs',
+                'Testcase',
+                'EndPoint',
+                'Method',
+                'Token',
+                'Body',
+                'StatusCode',
+                'ExpectedResult',
+                'ActualStatusCode',
+                'Actual Response',
+                'Result'
+            ];
 
-    //         // Lọc các test cases đã chọn
-//         $selectedTestCases = array_filter($allTestCases, function ($testCase, $index) use ($selectedCases) {
-//             return in_array($index, $selectedCases);
-//         }, ARRAY_FILTER_USE_BOTH);
+            $headerIndices = array_flip($allTestCases[0]); // Sử dụng hàng đầu tiên làm header
 
-    //         // Đặt thứ tự các header mong muốn
-//         $completeHeaders = [
-//             'Refs',
-//             'Testcase',
-//             'EndPoint',
-//             'Method',
-//             'Token',
-//             'Body',
-//             'StatusCode',
-//             'ExpectedResult',
-//             'Actual Response',
-//             'Result'
-//         ];
+            $orderedTestCases = array_map(function ($testCase, $index) use ($completeHeaders, $headerIndices, $selectedCases) {
+                return $this->processTestCase($testCase, $index, $completeHeaders, $headerIndices, $selectedCases);
+            }, $testCasesData, array_keys($testCasesData));
 
-    //         // Tạo một mảng chỉ số cho từng header trong completeHeaders dựa trên thứ tự của allTestCases[0]
-//         $headerIndices = array_flip($allTestCases[0]);
-
-    //         // Đặt thứ tự các cột trong test cases theo completeHeaders và thêm so sánh ExpectedResult với Actual Response
-//         $orderedTestCases = array_map(function ($testCase) use ($completeHeaders, $headerIndices) {
-//             $orderedRow = [];
-//             foreach ($completeHeaders as $header) {
-//                 $index = $headerIndices[$header] ?? null;
-//                 $orderedRow[] = $index !== null && isset($testCase[$index]) ? $testCase[$index] : 'Failed';
-//             }
-
-    //             // Chuyển dữ liệu vào mảng theo thứ tự headers mong muốn
-//             $orderedRowAssoc = array_combine($completeHeaders, $orderedRow);
-
-    //             // Kiểm tra và so sánh ExpectedResult với Actual Response
-//             if (isset($orderedRowAssoc['ExpectedResult']) && isset($orderedRowAssoc['Actual Response'])) {
-//                 $expectedResult = json_decode($orderedRowAssoc['ExpectedResult'], true);
-//                 $actualResponse = json_decode($orderedRowAssoc['Actual Response'], true);
-
-    //                 if (json_last_error() === JSON_ERROR_NONE && $expectedResult !== null && $actualResponse !== null) {
-//                     $orderedRowAssoc['Result'] = ($expectedResult == $actualResponse) ? 'Passed' : 'Failed';
-//                 } else {
-//                     // Nếu có lỗi JSON hoặc không có dữ liệu, đánh dấu là "Failed"
-//                     $orderedRowAssoc['Result'] = 'Failed';
-//                 }
-//             } else {
-//                 // Nếu thiếu ExpectedResult hoặc Actual Response, đánh dấu là "Failed"
-//                 $orderedRowAssoc['Result'] = 'Failed';
-//             }
-
-    //             return $orderedRowAssoc;
-//         }, $selectedTestCases);
-
-    //         // Trả về trang kết quả với danh sách kết quả
-//         return view('test-cases.results', [
-//             'results' => $orderedTestCases,
-//             'headers' => $completeHeaders
-//         ]);
-//     } else {
-//         // Xử lý khi thiếu test cases hoặc file path
-//         if (!$selectedCases) {
-//             return back()->with('error', 'Không có test case nào được chọn.');
-//         }
-//         if (!$filePath) {
-//             return back()->with('error', 'Không tìm thấy file.');
-//         }
-//     }
-
-public function sendTestCases(Request $request)
-{
-    $selectedCases = $request->input('selected_cases');
-    $filePath = $request->input('file_path');
-
-    if (!$selectedCases || !$filePath) {
-        return back()->with('error', !$selectedCases ? 'Không có test case nào được chọn.' : 'Không tìm thấy file.');
+            return view('test-cases.results', ['results' => $orderedTestCases, 'headers' => $completeHeaders]);
+        } catch (\Exception $e) {
+            Log::error('Error sending test cases: ' . $e->getMessage());
+            return back()->with('error', 'Error processing test cases.');
+        }
     }
 
-    // Đọc tất cả test cases từ file Excel
-    $allTestCases = Excel::toArray(new TestCaseImport, storage_path('app/private/' . $filePath))[0];
+    private function reorderRow($row, $headerIndices)
+    {
+        return array_map(function ($header) use ($row, $headerIndices) {
+            return $row[$headerIndices[$header]] ?? 'N/A';
+        }, array_keys($headerIndices));
+    }
 
-    // Bỏ qua hàng đầu tiên (header)
-    $testCasesData = array_slice($allTestCases, 1);
+    private function processTestCase($testCase, $index, $completeHeaders, $headerIndices, $selectedCases)
+    {
+        $orderedRow = [];
+        foreach ($completeHeaders as $header) {
+            $indexHeader = $headerIndices[$header] ?? null;
+            $orderedRow[] = $indexHeader !== null && isset($testCase[$indexHeader]) ? $testCase[$indexHeader] : 'Failed';
+        }
 
-    // Đảm bảo rằng chỉ số của test case là số nguyên 
-    $selectedCases = array_map(function($case) {
-        return intval($case) ;
-    }, $selectedCases);
+        $orderedRowAssoc = array_combine($completeHeaders, $orderedRow);
+        $adjustedIndex = $index + 1;
 
-    // Các header mà bạn muốn có trong kết quả cuối cùng
-    $completeHeaders = [
-        'Refs', 'Testcase', 'EndPoint', 'Method', 'Token', 'Body',
-        'StatusCode', 'ExpectedResult', 'ActualStatusCode', 'Actual Response', 'Result'
-    ];
+        if (in_array($adjustedIndex, $selectedCases)) {
+            try {
+                Log::info('Sending request', ['endpoint' => $orderedRowAssoc['EndPoint']]);
+            
+                $response = Http::withToken($orderedRowAssoc['Token'])
+                    ->{$orderedRowAssoc['Method']}(
+                        $orderedRowAssoc['EndPoint'],
+                        json_decode($orderedRowAssoc['Body'], true)
+                    );
+            
+                $orderedRowAssoc['ActualStatusCode'] = $response->status();
+                $orderedRowAssoc['Actual Response'] = $response->body();
+            } catch (ConnectException $e) {
+                Log::error('Connection error: ' . $e->getMessage());
+                $orderedRowAssoc['ActualStatusCode'] = 408; // Mã 408 (Request Timeout) cho lỗi kết nối
+                $orderedRowAssoc['Actual Response'] = 'Connection Error: ' . $e->getMessage();
+            } catch (RequestException $e) {
+                Log::error('HTTP error: ' . $e->getMessage());
+                $orderedRowAssoc['ActualStatusCode'] = $e->getResponse() ? $e->getResponse()->getStatusCode() : 400; // Lấy status code từ phản hồi hoặc mặc định là 400 (Bad Request)
+                $orderedRowAssoc['Actual Response'] = 'Request Error: ' . $e->getMessage();
+            } catch (\Exception $e) {
+                Log::error('General error: ' . $e->getMessage());
+                $orderedRowAssoc['ActualStatusCode'] = 500; // 500 cho các lỗi chung khác
+                $orderedRowAssoc['Actual Response'] = 'General Error: ' . $e->getMessage();
+            }
 
-    $headerIndices = array_flip($allTestCases[0]); // Sử dụng hàng đầu tiên làm header
+            $orderedRowAssoc['Result'] = $this->compareResults($orderedRowAssoc);
+        } else {
+            $orderedRowAssoc['ActualStatusCode'] = 'N/A';
+            $orderedRowAssoc['Actual Response'] = '';
+            $orderedRowAssoc['Result'] = 'Untested';
+        }
 
-    // Hàm so sánh JSON với ký tự đại diện
-    $compareJsonWithWildcards = function($expected, $actual) {
+        return $orderedRowAssoc;
+    }
+
+    private function compareResults($orderedRowAssoc)
+    {
+        if ($orderedRowAssoc['ActualStatusCode'] !== (int) $orderedRowAssoc['StatusCode']) {
+            return 'Failed';
+        }
+
+        return $this->compareJsonWithWildcards($orderedRowAssoc['ExpectedResult'], $orderedRowAssoc['Actual Response']) ? 'Passed' : 'Failed';
+    }
+
+    private function deepCompareArrays($expected, $actual)
+    {
+        if (is_array($expected) && is_array($actual)) {
+            if (count($expected) === 1 && isset($expected[0]) && $expected[0] === '...') {
+                return is_array($actual);
+            }
+
+            foreach ($expected as $key => $value) {
+                if (!array_key_exists($key, $actual) || !$this->deepCompareArrays($value, $actual[$key])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return $expected === $actual;
+    }
+
+    private function compareJsonWithWildcards($expected, $actual)
+    {
         $expected = str_replace("'", '"', $expected);
         $actual = str_replace("'", '"', $actual);
 
         if (trim($expected) === '[...]') {
-            $actualArray = json_decode($actual, true);
-            return is_array($actualArray) && !empty($actualArray);
+            return is_array(json_decode($actual, true)) && !empty(json_decode($actual, true));
         }
 
         $expectedArray = json_decode($expected, true);
@@ -203,95 +217,5 @@ public function sendTestCases(Request $request)
         }
 
         return trim($expected) === trim($actual);
-    };
-
-    // Xử lý tất cả test case và chỉ so sánh với test case được chọn
-    $orderedTestCases = array_map(function($testCase, $index) use ($completeHeaders, $headerIndices, $selectedCases, $compareJsonWithWildcards) {
-        $orderedRow = [];
-        foreach ($completeHeaders as $header) {
-            $indexHeader = $headerIndices[$header] ?? null;
-            $orderedRow[] = $indexHeader !== null && isset($testCase[$indexHeader]) ? $testCase[$indexHeader] : 'Failed';
-        }
-
-        $orderedRowAssoc = array_combine($completeHeaders, $orderedRow);
-
-        // Cộng thêm 1 vào chỉ số test case
-        $adjustedIndex = $index + 1;
-
-        if (in_array($adjustedIndex, $selectedCases)) {
-            try {
-                Log::info('Sending request', ['endpoint' => $orderedRowAssoc['EndPoint']]);
-                $response = Http::withToken($orderedRowAssoc['Token'])
-                    ->{$orderedRowAssoc['Method']}(
-                        $orderedRowAssoc['EndPoint'],
-                        json_decode($orderedRowAssoc['Body'], true)
-                    );
-
-                $orderedRowAssoc['ActualStatusCode'] = $response->status();
-                $orderedRowAssoc['Actual Response'] = $response->body();
-            } catch (\Exception $e) {
-                Log::error('Request error: ' . $e->getMessage());
-                $orderedRowAssoc['ActualStatusCode'] = 500;
-                $orderedRowAssoc['Actual Response'] = 'Error: ' . $e->getMessage();
-            }
-
-            // So sánh Status Code và Response cho các test case được chọn
-            if ($orderedRowAssoc['ActualStatusCode'] !== (int)$orderedRowAssoc['StatusCode']) {
-                $orderedRowAssoc['Result'] = 'Failed';
-            } else if ($compareJsonWithWildcards($orderedRowAssoc['ExpectedResult'], $orderedRowAssoc['Actual Response'])) {
-                $orderedRowAssoc['Result'] = 'Passed';
-            } else {
-                $orderedRowAssoc['Result'] = 'Failed';
-            }
-        } else {
-            // Đối với test case không được chọn, bỏ qua so sánh và đánh dấu kết quả là 'Untested'
-            $orderedRowAssoc['ActualStatusCode'] = 'N/A';
-            $orderedRowAssoc['Actual Response'] = '';
-            $orderedRowAssoc['Result'] = 'Untested';
-        }
-
-        return $orderedRowAssoc;
-    }, $testCasesData, array_keys($testCasesData));
-
-    // Trả về tất cả test case (bao gồm cả những cái không được chọn)
-    return view('test-cases.results', ['results' => $orderedTestCases, 'headers' => $completeHeaders]);
-}
-
-
-
-// Thêm hàm deepCompareArrays như một phương thức của lớp
-private function deepCompareArrays($expected, $actual)
-{
-    // Kiểm tra xem $expected và $actual có phải là mảng không
-    if (is_array($expected) && is_array($actual)) {
-        // Nếu $expected là mảng với một phần tử và phần tử đó là '...', trả về true nếu $actual là mảng
-        if (count($expected) === 1 && isset($expected[0]) && $expected[0] === '...') {
-            return is_array($actual);
-        }
-
-        // So sánh các phần tử của hai mảng
-        foreach ($expected as $key => $value) {
-            if (!array_key_exists($key, $actual) || !$this->deepCompareArrays($value, $actual[$key])) {
-                return false;
-            }
-        }
-        return true;
     }
-
-    // So sánh giá trị của $expected và $actual
-    return $expected === $actual;
 }
-
-
-
-
-
-}
-
-
-
-
-
-
-
-
