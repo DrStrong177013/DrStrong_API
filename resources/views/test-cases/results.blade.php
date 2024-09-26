@@ -7,11 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API Test Results</title>
     <!-- <link rel="stylesheet" href="{{ asset('cssForTest/loading.css') }}"> -->
-    <link rel="stylesheet" href="{{ asset('cssForTest/result.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     <link rel="stylesheet" href="{{ asset('cssForTest/result.css') }}">
 </head>
 
 <body>
+
     <!-- @include('components.loading') -->
 
     <div class="container">
@@ -62,42 +63,37 @@
 
         <div class="table-section">
 
-            <table class="test-case-table">
-                <thead>
-                    <tr>
-                        <th>Refs</th>
-                        <th class="th_center">Result</th>
-                        <th class="th_center">Method</th>
-                        <th>Testcase</th>
-                        <th class="th_center">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
+            <div id="resultsTable">
+                @if (empty($results))
+                    <p>No results available yet.</p>
+                @else
+                    <table class="test-case-table">
+                        <thead>
+                            <tr>
+                                <th>Refs</th>
+                                <th class="th_center">Result</th>
+                                <th class="th_center">Method</th>
+                                <th>Testcase</th>
+                                <th class="th_center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($results as $result)
+                                <tr class="{{ $loop->even ? 'even' : 'odd' }}">
+                                    <td class="refs">{{ $result['Refs'] ?? 'N/A' }}</td>
+                                    <td class="result {{ strtolower($result['Result']) ?? 'default-class' }}">
+                                        {{ $result['Result'] ?? 'N/A' }}
+                                    </td>
+                                    <td class="method th_center">{{ strtoupper($result['Method']) ?? 'N/A' }}</td>
+                                    <td class="testcase">{{ Str::limit($result['Testcase'], 85, '...') ?? 'N/A' }}</td>
+                                    <td class="status th_center">{{ $result['ActualStatusCode'] ?? 'N/A' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
 
-                    @foreach ($results as $result)             
-                        <tr class="{{ $loop->even ? 'even' : 'odd' }}">
-                            <td class="refs">
-                                {{ $result['Refs'] ?? 'N/A'}}
-                            </td>
-                            <td class="result {{ isset($result['Result']) ? strtolower($result['Result']) : 'default-class' }}"
-                                width="50px">
-                                <div class="div_results th_center">{{ $result['Result'] ?? 'N/A' }}</div>
-                            </td>
-
-                            <td class="method method-label th_center"
-                                data-method="{{ strtolower($result['Method']) ?? 'N/A' }}">
-                                {{ strtoupper($result['Method']) ?? 'N/A' }}
-                            </td>
-                            <td class="testcase">
-                                {{ Str::limit($result['Testcase'], 85, '...') ?? 'N/A'}}
-                            </td>
-                            <td class="status th_center" data-status="{{ $result['ActualStatusCode'] ?? 'N/A' }}">
-                                {{ $result['ActualStatusCode'] ?? 'N/A' }}
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                    </table>
+                @endif
+            </div>
             <div id="noResultsMessage" class="no-results-message"></div>
         </div>
     </div>
@@ -116,11 +112,17 @@
         </div>
     </div>
 
-
-    <script>
-        const results = Object.values({!! json_encode($results) !!});
-    </script>
+    @if (!empty($results))
+        <script>
+            const results = Object.values({!! json_encode($results) !!});
+        </script>
+    @endif
     <script src="{{ asset('jsForTest/result.js') }}"></script>
+    <!-- <script>var exports = {};</script>
+
+
+
+
 </body>
 
 </html>

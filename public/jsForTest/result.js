@@ -1,17 +1,10 @@
-let failedCount = 0;
-let passedCount = 0;
-let untestedCount = 0;
-
-// Đếm số lượng các kết quả
-results.forEach(result => {
-    if (result.Result === 'Passed') {
-        passedCount++;
-    } else if (result.Result === 'Failed') {
-        failedCount++;
-    } else {
-        untestedCount++;
-    }
-});
+// public\jsForTest\result.js
+let { failedCount, passedCount, untestedCount } = results.reduce((acc, result) => {
+    if (result.Result === 'Passed') acc.passedCount++;
+    else if (result.Result === 'Failed') acc.failedCount++;
+    else acc.untestedCount++;
+    return acc;
+}, { failedCount: 0, passedCount: 0, untestedCount: 0 });
 
 // Cập nhật số liệu tổng
 document.getElementById('totalTests').innerText = results.length;
@@ -23,9 +16,15 @@ document.getElementById('untestedCount').innerText = untestedCount;
 
 // Tính phần trăm
 let total = results.length;
-document.getElementById('failedPercent').innerText = ((failedCount / total) * 100).toFixed(2) + '%';
-document.getElementById('passedPercent').innerText = ((passedCount / total) * 100).toFixed(2) + '%';
-document.getElementById('untestedPercent').innerText = ((untestedCount / total) * 100).toFixed(2) + '%';
+if (total > 0) {
+    document.getElementById('failedPercent').innerText = ((failedCount / total) * 100).toFixed(2) + '%';
+    document.getElementById('passedPercent').innerText = ((passedCount / total) * 100).toFixed(2) + '%';
+    document.getElementById('untestedPercent').innerText = ((untestedCount / total) * 100).toFixed(2) + '%';
+} else {
+    document.getElementById('failedPercent').innerText = '0%';
+    document.getElementById('passedPercent').innerText = '0%';
+    document.getElementById('untestedPercent').innerText = '0%';
+}
 
 // Tạo biểu đồ Doughnut
 const ctx = document.getElementById('testResultsChart').getContext('2d');
@@ -129,13 +128,11 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.style.display = 'none';
         }
     };
-});
 
-// Bộ lọc kết quả test case
-document.addEventListener('DOMContentLoaded', () => {
+    // Bộ lọc kết quả test case
     const filterButtons = document.querySelectorAll('.filter-button');
-    const tableRows = document.querySelectorAll('.test-case-table tbody tr');
-
+    const messageElement = document.getElementById('noResultsMessage');
+    
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
             const filter = button.getAttribute('data-filter');
@@ -144,23 +141,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function filterTable(filter) {
-        let hasVisibleRows = false; // Biến kiểm tra xem có hàng nào hiển thị không
+        let hasVisibleRows = false; 
+
         tableRows.forEach(row => {
             const resultCell = row.querySelector('.result');
-            if (filter === 'all' || resultCell.classList.contains(filter)) {
-                row.style.display = '';
-                hasVisibleRows = true;
-            } else {
-                row.style.display = 'none';
-            }
+            const isVisible = (filter === 'all' || resultCell.classList.contains(filter));
+            row.style.display = isVisible ? '' : 'none';
+            if (isVisible) hasVisibleRows = true;
         });
 
-        const messageElement = document.getElementById('noTestCasesMessage');
+        messageElement.style.display = hasVisibleRows ? 'none' : 'block';
         if (!hasVisibleRows) {
-            messageElement.innerText = `Don't have any test case with ${filter} Results`;
-            messageElement.style.display = 'block';
-        } else {
-            messageElement.style.display = 'none';
+            messageElement.innerText = `No test case found with ${filter} results.`;
         }
     }
 });

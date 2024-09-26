@@ -14,7 +14,7 @@ class ClearLogIfTooLarge extends Command
     protected $description = 'Clear the Laravel log if it exceeds a specified size limit';
 
     // Giới hạn dung lượng file log (tính bằng bytes). Ví dụ: 5MB (5 * 1024 * 1024)
-    protected $maxLogSize = 5 * 1024 * 1024; // 5MB
+    protected $maxLogSize = 100 * 1024 * 1024; // 5MB
 
     public function __construct()
     {

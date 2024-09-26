@@ -6,11 +6,9 @@ use App\Imports\TestCaseImport;
 use App\Services\ExcelService;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Exception\ConnectException;
-use Illuminate\Support\Facades\Storage;
+use App\Jobs\ProcessTestCases;
+
 
 class TestCaseController extends Controller
 {
@@ -66,156 +64,57 @@ class TestCaseController extends Controller
     }
     public function sendTestCases(Request $request)
     {
+        Log::info('### Starting FUNC sendTestCases ###');
+
         $selectedCases = $request->input('selected_cases');
         $filePath = $request->input('file_path');
+
+
         if (!$selectedCases || !$filePath) {
             return back()->with('error', !$selectedCases ? 'Không có test case nào được chọn.' : 'Không tìm thấy file.');
         }
 
         try {
-            $allTestCases = Excel::toArray(new TestCaseImport, storage_path('app/private/' . $filePath))[0];
+            // Dispatch job ProcessTestCases để xử lý trong background
+            ProcessTestCases::dispatch($filePath, $selectedCases);
 
-            // Bỏ qua hàng đầu tiên (header)
-            $testCasesData = array_slice($allTestCases, 1);
 
-            // Các header mà bạn muốn có trong kết quả cuối cùng
-            $completeHeaders = [
-                'Refs',
-                'Testcase',
-                'EndPoint',
-                'Method',
-                'Token',
-                'Body',
-                'StatusCode',
-                'ExpectedResult',
-                'ActualStatusCode',
-                'Actual Response',
-                'Result'
-            ];
+            // Gửi thông báo rằng quá trình đang được xử lý trong background
+            Log::info('Dispatching job for test cases', ['selected_cases' => $selectedCases, 'file_path' => $filePath]);
+            Log::info('$$$ END FUNC sendTestCases ###');
 
-            $headerIndices = array_flip($allTestCases[0]); // Sử dụng hàng đầu tiên làm header
-
-            $orderedTestCases = array_map(function ($testCase, $index) use ($completeHeaders, $headerIndices, $selectedCases) {
-                return $this->processTestCase($testCase, $index, $completeHeaders, $headerIndices, $selectedCases);
-            }, $testCasesData, array_keys($testCasesData));
-
-            return view('test-cases.results', ['results' => $orderedTestCases, 'headers' => $completeHeaders]);
+            return redirect()->route('testcases.results');
         } catch (\Exception $e) {
-            Log::error('Error sending test cases: ' . $e->getMessage());
-            return back()->with('error', 'Error processing test cases.');
+            Log::error('Error dispatching job: ' . $e->getMessage());
+            return back()->with('error', 'Error dispatching job.');
         }
     }
 
-    private function reorderRow($row, $headerIndices)
+    public function getResults()
     {
-        return array_map(function ($header) use ($row, $headerIndices) {
-            return $row[$headerIndices[$header]] ?? 'N/A';
-        }, array_keys($headerIndices));
-    }
+        Log::info('-----> Getting result');
+        $results = \App\Models\TestCaseResult::all();
 
-    private function processTestCase($testCase, $index, $completeHeaders, $headerIndices, $selectedCases)
-    {
-        $orderedRow = [];
-        foreach ($completeHeaders as $header) {
-            $indexHeader = $headerIndices[$header] ?? null;
-            $orderedRow[] = $indexHeader !== null && isset($testCase[$indexHeader]) ? $testCase[$indexHeader] : 'Failed';
-        }
-
-        $orderedRowAssoc = array_combine($completeHeaders, $orderedRow);
-        $adjustedIndex = $index + 1;
-
-        if (in_array($adjustedIndex, $selectedCases)) {
-            try {
-                Log::info('Sending request', ['endpoint' => $orderedRowAssoc['EndPoint']]);
-            
-                $response = Http::withToken($orderedRowAssoc['Token'])
-                    ->{$orderedRowAssoc['Method']}(
-                        $orderedRowAssoc['EndPoint'],
-                        json_decode($orderedRowAssoc['Body'], true)
-                    );
-            
-                $orderedRowAssoc['ActualStatusCode'] = $response->status();
-                $orderedRowAssoc['Actual Response'] = $response->body();
-            } catch (ConnectException $e) {
-                Log::error('Connection error: ' . $e->getMessage());
-                $orderedRowAssoc['ActualStatusCode'] = 408; // Mã 408 (Request Timeout) cho lỗi kết nối
-                $orderedRowAssoc['Actual Response'] = 'Connection Error: ' . $e->getMessage();
-            } catch (RequestException $e) {
-                Log::error('HTTP error: ' . $e->getMessage());
-                $orderedRowAssoc['ActualStatusCode'] = $e->getResponse() ? $e->getResponse()->getStatusCode() : 400; // Lấy status code từ phản hồi hoặc mặc định là 400 (Bad Request)
-                $orderedRowAssoc['Actual Response'] = 'Request Error: ' . $e->getMessage();
-            } catch (\Exception $e) {
-                Log::error('General error: ' . $e->getMessage());
-                $orderedRowAssoc['ActualStatusCode'] = 500; // 500 cho các lỗi chung khác
-                $orderedRowAssoc['Actual Response'] = 'General Error: ' . $e->getMessage();
-            }
-
-            $orderedRowAssoc['Result'] = $this->compareResults($orderedRowAssoc);
+        if ($results->isEmpty()) {
+            Log::info('No results found in database.');
         } else {
-            $orderedRowAssoc['ActualStatusCode'] = 'N/A';
-            $orderedRowAssoc['Actual Response'] = '';
-            $orderedRowAssoc['Result'] = 'Untested';
+            Log::info('Results retrieved from database: ', ['results' => $results]);
         }
+        Log::info('-----> END result');
 
-        return $orderedRowAssoc;
+        return view('test-cases.results', compact('results'));
     }
 
-    private function compareResults($orderedRowAssoc)
+
+    public function testBroadcast()
     {
-        if ($orderedRowAssoc['ActualStatusCode'] !== (int) $orderedRowAssoc['StatusCode']) {
-            return 'Failed';
-        }
+        $data = ['Testcase' => 'Test 1', 'Result' => 'Passed'];
 
-        return $this->compareJsonWithWildcards($orderedRowAssoc['ExpectedResult'], $orderedRowAssoc['Actual Response']) ? 'Passed' : 'Failed';
+        return response()->json(['status' => 'Event broadcasted']);
     }
 
-    private function deepCompareArrays($expected, $actual)
-    {
-        if (is_array($expected) && is_array($actual)) {
-            if (count($expected) === 1 && isset($expected[0]) && $expected[0] === '...') {
-                return is_array($actual);
-            }
 
-            foreach ($expected as $key => $value) {
-                if (!array_key_exists($key, $actual) || !$this->deepCompareArrays($value, $actual[$key])) {
-                    return false;
-                }
-            }
-            return true;
-        }
 
-        return $expected === $actual;
-    }
 
-    private function compareJsonWithWildcards($expected, $actual)
-    {
-        $expected = str_replace("'", '"', $expected);
-        $actual = str_replace("'", '"', $actual);
 
-        if (trim($expected) === '[...]') {
-            return is_array(json_decode($actual, true)) && !empty(json_decode($actual, true));
-        }
-
-        $expectedArray = json_decode($expected, true);
-        $actualArray = json_decode($actual, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            Log::error('JSON Decode Error: ' . json_last_error_msg());
-            return false;
-        }
-
-        if (is_array($expectedArray) && is_array($actualArray)) {
-            foreach ($expectedArray as $key => $value) {
-                if ($value === '...') {
-                    continue;
-                }
-                if (!array_key_exists($key, $actualArray) || !$this->deepCompareArrays($value, $actualArray[$key])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        return trim($expected) === trim($actual);
-    }
 }
