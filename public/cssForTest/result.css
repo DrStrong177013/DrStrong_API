@@ -134,8 +134,14 @@ body {
 
 .test-case-table .result {
     color: #fff;
-    padding: none;
+
 }
+.result  {
+    display: flex;
+    justify-content: center;
+
+}
+
 
 .result.passed .div_results {
     background-color: #2ecc71;

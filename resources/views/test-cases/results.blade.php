@@ -8,7 +8,7 @@
     <title>API Test Results</title>
     <!-- <link rel="stylesheet" href="{{ asset('cssForTest/loading.css') }}"> -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-     <link rel="stylesheet" href="{{ asset('cssForTest/result.css') }}">
+    <link rel="stylesheet" href="{{ asset('cssForTest/result.css') }}">
 </head>
 
 <body>
@@ -82,11 +82,18 @@
                                 <tr class="{{ $loop->even ? 'even' : 'odd' }}">
                                     <td class="refs">{{ $result['Refs'] ?? 'N/A' }}</td>
                                     <td class="result {{ strtolower($result['Result']) ?? 'default-class' }}">
-                                        {{ $result['Result'] ?? 'N/A' }}
+                                        <div class="div_results">{{ $result['Result'] ?? 'N/A' }}</div>
                                     </td>
-                                    <td class="method th_center">{{ strtoupper($result['Method']) ?? 'N/A' }}</td>
-                                    <td class="testcase">{{ Str::limit($result['Testcase'], 85, '...') ?? 'N/A' }}</td>
-                                    <td class="status th_center">{{ $result['ActualStatusCode'] ?? 'N/A' }}</td>
+                                    <td class="method method-label th_center"
+                                        data-method="{{ strtolower($result['Method']) ?? 'N/A' }}">
+                                        {{ strtoupper($result['Method']) ?? 'N/A' }}
+                                    </td>
+                                    <td class="testcase">
+                                        {{ Str::limit($result['Testcase'], 85, '...') ?? 'N/A' }}
+                                    </td>
+                                    <td class="status th_center" data-status="{{ $result['ActualStatusCode'] ?? 'N/A' }}">
+                                        {{ $result['ActualStatusCode'] ?? 'N/A' }}
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>

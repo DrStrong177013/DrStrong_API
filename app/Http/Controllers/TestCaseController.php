@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Log;
 use App\Jobs\ProcessTestCases;
-
+use App\Models\TestCaseResult;
 
 class TestCaseController extends Controller
 {
@@ -21,12 +21,23 @@ class TestCaseController extends Controller
 
     public function uploadTestCases(Request $request)
     {
+        Log::info('Uploading test cases');
         $file = $request->file('excel_file');
+
+        // Log thông tin về file được tải lên
+        Log::info('File uploaded: ', ['file_name' => $file->getClientOriginalName(), 'size' => $file->getSize()]);
+
         $path = $file->storeAs('uploads', $file->getClientOriginalName());
+
+        // Log đường dẫn file được lưu trữ
+        Log::info('File stored at: ', ['path' => $path]);
 
         $testCases = Excel::toArray(new TestCaseImport, storage_path('app/private/' . $path));
         $allHeaders = $testCases[0][0];
         $desiredHeaders = ["Refs", "Method", "Testcase"];
+
+        // Log thông tin headers của file Excel
+        Log::info('Headers found in Excel: ', ['headers' => $allHeaders]);
 
         $headerIndices = array_flip($allHeaders);
         $orderedIndices = array_map(function ($header) use ($headerIndices) {
@@ -62,6 +73,7 @@ class TestCaseController extends Controller
             'filePath' => $path,
         ]);
     }
+
     public function sendTestCases(Request $request)
     {
         Log::info('### Starting FUNC sendTestCases ###');
@@ -69,17 +81,22 @@ class TestCaseController extends Controller
         $selectedCases = $request->input('selected_cases');
         $filePath = $request->input('file_path');
 
+        // Log thông tin dữ liệu gửi lên từ form
+        Log::info('Received request data: ', ['selected_cases' => $selectedCases, 'file_path' => $filePath]);
 
         if (!$selectedCases || !$filePath) {
             return back()->with('error', !$selectedCases ? 'Không có test case nào được chọn.' : 'Không tìm thấy file.');
         }
 
         try {
+            Log::info('Truncating test_case_results table');
+            TestCaseResult::truncate();
+            Log::info('Table truncated successfully');
+            
             // Dispatch job ProcessTestCases để xử lý trong background
             ProcessTestCases::dispatch($filePath, $selectedCases);
 
-
-            // Gửi thông báo rằng quá trình đang được xử lý trong background
+            // Log thông tin về job được dispatch
             Log::info('Dispatching job for test cases', ['selected_cases' => $selectedCases, 'file_path' => $filePath]);
             Log::info('$$$ END FUNC sendTestCases ###');
 
@@ -93,7 +110,7 @@ class TestCaseController extends Controller
     public function getResults()
     {
         Log::info('-----> Getting result');
-        $results = \App\Models\TestCaseResult::all();
+        $results = TestCaseResult::all();
 
         if ($results->isEmpty()) {
             Log::info('No results found in database.');
@@ -104,17 +121,5 @@ class TestCaseController extends Controller
 
         return view('test-cases.results', compact('results'));
     }
-
-
-    public function testBroadcast()
-    {
-        $data = ['Testcase' => 'Test 1', 'Result' => 'Passed'];
-
-        return response()->json(['status' => 'Event broadcasted']);
-    }
-
-
-
-
 
 }

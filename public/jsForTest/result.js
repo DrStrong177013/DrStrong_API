@@ -90,14 +90,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 let formattedActualResponse = '';
 
                 try {
-                    if (typeof result['Actual Response'] === 'string' && result['Actual Response'].startsWith('{')) {
-                        const actualResponseObject = JSON.parse(result['Actual Response']);
+                    if (typeof result['ActualResponse'] === 'string' && result['ActualResponse'].startsWith('{')) {
+                        const actualResponseObject = JSON.parse(result['ActualResponse']);
                         formattedActualResponse = JSON.stringify(actualResponseObject, null, 4);
                     } else {
-                        formattedActualResponse = result['Actual Response'] || 'N/A';
+                        formattedActualResponse = result['ActualResponse'] || 'N/A';
                     }
                 } catch (e) {
-                    formattedActualResponse = result['Actual Response'] || 'N/A';
+                    formattedActualResponse = result['ActualResponse'] || 'N/A';
                 }
 
                 // Cập nhật nội dung modal
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p><strong>StatusCode:</strong> ${result.StatusCode || 'N/A'}</p>
                     <p><strong>ExpectedResult:</strong> ${result.ExpectedResult || 'N/A'}</p>
                     <p><strong>ActualStatusCode:</strong> ${result.ActualStatusCode || 'N/A'}</p>
-                    <p><strong>Actual Response:</strong> <pre>${formattedActualResponse}</pre></p>
+                    <p><strong>ActualResponse:</strong> <pre>${formattedActualResponse}</pre></p>
                     <p><strong>Result:</strong> ${result.Result || 'N/A'}</p>
                 `;
                 modal.style.display = 'block';

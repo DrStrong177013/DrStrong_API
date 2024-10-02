@@ -14,7 +14,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ConnectException;
 use App\Models\TestCaseResult;
-use App\Events\TestCaseResultsUpdated;
+
 
 class ProcessTestCases implements ShouldQueue
 {
@@ -31,15 +31,11 @@ class ProcessTestCases implements ShouldQueue
 
     public function handle()
     {
-        Log::info('###Starting job for test cases processing');
+        Log::info('### Starting job for test cases processing ###');
 
         try {
-            Log::info('Truncating test_case_results table');
-            TestCaseResult::truncate();
-            Log::info('Table truncated successfully');
 
             $allTestCases = Excel::toArray(new TestCaseImport, storage_path('app/private/' . $this->filePath))[0];
-
             $testCasesData = array_slice($allTestCases, 1);
 
             $completeHeaders = [
@@ -52,7 +48,7 @@ class ProcessTestCases implements ShouldQueue
                 'StatusCode',
                 'ExpectedResult',
                 'ActualStatusCode',
-                'Actual Response',
+                'ActualResponse',
                 'Result'
             ];
 
@@ -62,11 +58,7 @@ class ProcessTestCases implements ShouldQueue
                 return $this->processTestCase($testCase, $index, $completeHeaders, $headerIndices, $this->selectedCases);
             }, $testCasesData, array_keys($testCasesData));
 
-            session(['test_case_results' => $results]);
-
-            $count = TestCaseResult::count();
-            Log::info('Count after processing: ' . $count);
-
+            Log::info('Count after processing: ' . TestCaseResult::count());
         } catch (\Exception $e) {
             Log::error('Error processing test cases: ' . $e->getMessage());
         }
@@ -74,6 +66,8 @@ class ProcessTestCases implements ShouldQueue
 
     private function processTestCase($testCase, $index, $completeHeaders, $headerIndices, $selectedCases)
     {
+        Log::info('Processing test case: ', ['index' => $index]);
+
         $orderedRow = [];
         foreach ($completeHeaders as $header) {
             $indexHeader = $headerIndices[$header] ?? null;
@@ -85,63 +79,46 @@ class ProcessTestCases implements ShouldQueue
 
         if (empty($selectedCases) || !in_array($adjustedIndex, $selectedCases)) {
             $orderedRowAssoc['ActualStatusCode'] = 'N/A';
-            $orderedRowAssoc['Actual Response'] = '';
+            $orderedRowAssoc['ActualResponse'] = '';
             $orderedRowAssoc['Result'] = 'Untested';
             Log::info('No selected cases or index not found', ['index' => $adjustedIndex]);
         } else {
             try {
                 Log::info('Sending request', ['endpoint' => $orderedRowAssoc['EndPoint']]);
 
-                $response = Http::withToken($orderedRowAssoc['Token'])
+                $response = Http::timeout(30)
+                            ->withToken($orderedRowAssoc['Token'])
                     ->{$orderedRowAssoc['Method']}(
                         $orderedRowAssoc['EndPoint'],
                         json_decode($orderedRowAssoc['Body'], true)
                     );
 
                 $orderedRowAssoc['ActualStatusCode'] = $response->status();
-                $orderedRowAssoc['Actual Response'] = $response->body();
+                $orderedRowAssoc['ActualResponse'] = $response->body();
             } catch (ConnectException $e) {
                 Log::error('Connection error: ' . $e->getMessage());
                 $orderedRowAssoc['ActualStatusCode'] = 408;
-                $orderedRowAssoc['Actual Response'] = 'Connection Error: ' . $e->getMessage();
+                $orderedRowAssoc['ActualResponse'] = 'Connection Error: ' . $e->getMessage();
             } catch (RequestException $e) {
                 Log::error('HTTP error: ' . $e->getMessage());
                 $orderedRowAssoc['ActualStatusCode'] = $e->getResponse() ? $e->getResponse()->getStatusCode() : 400;
-                $orderedRowAssoc['Actual Response'] = 'Request Error: ' . $e->getMessage();
+                $orderedRowAssoc['ActualResponse'] = 'Request Error: ' . $e->getMessage();
             } catch (\Exception $e) {
                 Log::error('General error: ' . $e->getMessage());
                 $orderedRowAssoc['ActualStatusCode'] = 500;
-                $orderedRowAssoc['Actual Response'] = 'General Error: ' . $e->getMessage();
+                $orderedRowAssoc['ActualResponse'] = 'Unknown Error: ' . $e->getMessage();
             }
 
-            $orderedRowAssoc['Result'] = $this->compareResults($orderedRowAssoc);
-        }
-        Log::info('Method:', ['Method' => $orderedRowAssoc['Method']]);
-        
-        $result = new TestCaseResult();
-        $result->Refs = $orderedRowAssoc['Refs'];
-        $result->Result = $orderedRowAssoc['Result'];
-        $result->Method = $orderedRowAssoc['Method'] ?? 'UNKNOWN';
-        $result->Testcase = $orderedRowAssoc['Testcase'] ?? 'No Testcase Provided';
-        $result->ActualStatusCode = $orderedRowAssoc['ActualStatusCode'] ?? 0;
-
-        $result->save();
-
-        Log::info('Saved result to database', ['Refs' => $orderedRowAssoc['Refs'], 'Result' => $orderedRowAssoc['Result']]);
-        Log::info('Data for broadcast: ', $orderedRowAssoc);
-
-        // Broadcasting the result for real-time updates
-        try {
-            // Log::info('<<<<<BEGIN broadcasting ' . $orderedRowAssoc['Testcase'] . '>>>>>');
-            // broadcast(new TestCaseResultsUpdated($orderedRowAssoc));
-            // // event(new TestCaseResultsUpdated($orderedRowAssoc));
-            // // event(new TestCaseResultsUpdated(new \Illuminate\Database\Eloquent\Collection()));
-            // Log::info('-----END for broacasting' . $orderedRowAssoc['Testcase'] . '-----');
-        } catch (\Exception $e) {
-            Log::error('!!! Broadcast ERROR: ' . $e->getMessage() . ' !!!');
+            $orderedRowAssoc['Result'] = ($orderedRowAssoc['ActualStatusCode'] == $orderedRowAssoc['StatusCode']) ? 'Passed' : 'Failed';
         }
 
-        return $orderedRowAssoc;
+        Log::info('Saving test case result', ['Refs' => $orderedRowAssoc['Refs'], 'Result' => $orderedRowAssoc['Result']]);
+        $testCaseResult = TestCaseResult::create($orderedRowAssoc);
+
+        Log::info('Preparing to dispatch TestCaseUpdated event', [
+            'testCaseResult' => $testCaseResult['Refs'],
+        ]);
+
     }
 
     private function compareResults($orderedRowAssoc)
@@ -150,7 +127,7 @@ class ProcessTestCases implements ShouldQueue
             return 'Failed';
         }
 
-        return $this->compareJsonWithWildcards($orderedRowAssoc['ExpectedResult'], $orderedRowAssoc['Actual Response']) ? 'Passed' : 'Failed';
+        return $this->compareJsonWithWildcards($orderedRowAssoc['ExpectedResult'], $orderedRowAssoc['ActualResponse']) ? 'Passed' : 'Failed';
     }
 
     private function deepCompareArrays($expected, $actual)
