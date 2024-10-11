@@ -7,6 +7,9 @@ use App\Http\Controllers\TestCaseController;
 Route::get('/', function () {
     return view('upload'); // Displays the file upload form
 });
+Route::get('/1', function () {
+    return view('testChart'); // Displays the file upload form
+});
 
 // Route for uploading and displaying test cases
 Route::post('/upload-test-cases', [TestCaseController::class, 'uploadTestCases'])->name('uploadTestCases');
