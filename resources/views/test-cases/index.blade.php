@@ -6,12 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Test Case Display</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('cssForTest/loading.css') }}">
+    <!-- <link rel="stylesheet" href="{{ asset('cssForTest/loading.css') }}"> -->
     <link rel="stylesheet" href="{{ asset('cssForTest/index.css') }}">
 </head>
 
 <body>
-    @include('components.loading')
+    <!-- @include('components.loading') -->
     <div class="container mt-4">
         <h2 class="text-center mb-4">Test Case Display</h2>
         <form method="POST" action="{{ route('sendTestCases') }}">
@@ -25,7 +25,7 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th><input type="checkbox" id="selectAll"> Select All</th>
+                        <th><input type="checkbox" id="selectAll" class="border-radius-left"></th>
                         {{-- <th>
                             <div>
                                 <button id="selectAllCurrentPage">Chọn tất cả trên trang hiện tại</button>
@@ -73,7 +73,7 @@
 
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ asset('jsForTest/loading.js') }}"></script>
+    <!-- <script src="{{ asset('jsForTest/loading.js') }}"></script> -->
     <script src="{{ asset('jsForTest/index.js') }}"></script>
 </body>
 

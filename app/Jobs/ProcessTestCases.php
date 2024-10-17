@@ -6,6 +6,7 @@ use App\Imports\TestCaseImport;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
@@ -14,7 +15,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ConnectException;
 use App\Models\TestCaseResult;
-
+use Illuminate\Support\Str;
 
 class ProcessTestCases implements ShouldQueue
 {
@@ -22,12 +23,12 @@ class ProcessTestCases implements ShouldQueue
 
     protected $filePath;
     protected $selectedCases;
-
+    public $jobId;
     public function __construct($filePath, $selectedCases)
-    {
-        $this->filePath = $filePath;
-        $this->selectedCases = $selectedCases;
-    }
+{
+    $this->filePath = $filePath;
+    $this->selectedCases = $selectedCases;
+}
 
     public function handle()
     {
@@ -51,14 +52,30 @@ class ProcessTestCases implements ShouldQueue
                 'ActualResponse',
                 'Result'
             ];
-
             $headerIndices = array_flip($allTestCases[0]);
+
+            $jobId = 'Hello';
+            DB::table('job_statuses')->where('job_id', $jobId)->delete();
+        
+            
+            DB::table('job_statuses')->insert([
+                'job_id' => $jobId,
+                'status' => 'pending',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
             $results = array_map(function ($testCase, $index) use ($completeHeaders, $headerIndices) {
                 return $this->processTestCase($testCase, $index, $completeHeaders, $headerIndices, $this->selectedCases);
             }, $testCasesData, array_keys($testCasesData));
-
+            
             Log::info('Count after processing: ' . TestCaseResult::count());
+
+            DB::table('job_statuses')->where('job_id', $jobId)->update([
+                'status' => 'completed',
+                'updated_at' => now(),
+            ]);
+
         } catch (\Exception $e) {
             Log::error('Error processing test cases: ' . $e->getMessage());
         }

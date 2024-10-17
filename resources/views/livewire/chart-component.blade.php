@@ -37,6 +37,13 @@
     <script>
         let chart;
         document.addEventListener('DOMContentLoaded', function () {
+            // Dữ liệu khởi tạo từ Livewire
+            let failed = @json($failedCount);
+            let passed = @json($passedCount);
+            let untested = @json($untestedCount);
+
+            // Nếu dữ liệu có giá trị thì khởi tạo với các giá trị này, nếu không thì mặc định là 0
+            let initialSeries = [failed || 0, passed || 0, untested || 0];
             var options = {
                 chart: {
                     type: 'donut',
@@ -44,18 +51,18 @@
                     animations: {
                         enabled: true,
                         easing: 'easeinout',
-                        speed: 800,
+                        speed: 300,
                         animateGradually: {
                             enabled: true,
-                            delay: 150,
+
                         },
                         dynamicAnimation: {
                             enabled: true,
-                            speed: 350,
+                            speed: 500,
                         }
                     },
                 },
-                series: [0, 0, 0], // Dữ liệu khởi tạo
+                series: initialSeries, // Dữ liệu khởi tạo
                 labels: ['Failed', 'Passed', 'Untested'],
                 colors: ['#e74c3c', '#2ecc71', '#3498db'],
                 dataLabels: {
@@ -99,10 +106,12 @@
                                 show: true,
                                 name: {},
                                 value: {
+                                    color: 'floralwhite',
                                     fontSize: '25px'
                                 },
                                 total: {
                                     show: true,
+                                    color: 'floralwhite',
                                     fontSize: '19px'
                                 }
                             }
@@ -141,24 +150,21 @@
                 const chartData = data[0];
                 const totalTests = chartData.failed + chartData.passed + chartData.untested;
 
-                console.log('Received chart data:', chartData); // Kiểm tra dữ liệu
-                console.log('Total tests:', totalTests); // Kiểm tra tổng số test
-
                 if (totalTests > 0) {
-                    // Tính toán phần trăm
+                    // Cập nhật biểu đồ và dữ liệu
                     const failedPercentage = ((chartData.failed / totalTests) * 100).toFixed(2);
                     const passedPercentage = ((chartData.passed / totalTests) * 100).toFixed(2);
                     const untestedPercentage = ((chartData.untested / totalTests) * 100).toFixed(2);
 
-                    // Cập nhật nội dung summary
                     document.getElementById('failedCount').innerText = chartData.failed;
-                    document.getElementById('failedPercent').innerText = failedPercentage ;
+                    document.getElementById('failedPercent').innerText = failedPercentage;
 
                     document.getElementById('passedCount').innerText = chartData.passed;
                     document.getElementById('passedPercent').innerText = passedPercentage;
 
                     document.getElementById('untestedCount').innerText = chartData.untested;
                     document.getElementById('untestedPercent').innerText = untestedPercentage;
+
                     chart.updateSeries([chartData.failed, chartData.passed, chartData.untested]);
                 } else {
                     // Nếu không có tổng số tests, đặt về 0

@@ -12,37 +12,37 @@ class ChartComponent extends Component
 
     public function mount()
     {
-        $this->testResults = TestCaseResult::all()->toArray();
+        $this->updateChartData();
     }
 
     public function updateChartData()
-{
-    \Log::info('updateChartData called');
-    try {
-        $this->testResults = TestCaseResult::all()->toArray();
-        
-        $failedCount = $this->getCount('Failed');
-        $passedCount = $this->getCount('Passed');
-        $untestedCount = $this->getCount('Untested');
+    {
+        \Log::info('updateChartData called');
+        try {
+            $this->testResults = TestCaseResult::all()->toArray();
 
-        \Log::info('Dispatching updateChart with data:', [
-            'failed' => $failedCount,
-            'passed' => $passedCount,
-            'untested' => $untestedCount,
-        ]);
+            $failedCount = $this->getCount('Failed');
+            $passedCount = $this->getCount('Passed');
+            $untestedCount = $this->getCount('Untested');
+
+            \Log::info('Dispatching updateChart with data:', [
+                'failed' => $failedCount,
+                'passed' => $passedCount,
+                'untested' => $untestedCount,
+            ]);
 
 
-        $this->dispatch('updateChart', [
-            'failed' => $failedCount,
-            'passed' => $passedCount,
-            'untested' => $untestedCount,
-        ]);
-        $this->refresh();
+            $this->dispatch('updateChart', [
+                'failed' => $failedCount,
+                'passed' => $passedCount,
+                'untested' => $untestedCount,
+            ]);
 
-    } catch (\Exception $e) {
-        \Log::error('Error updating chart data: ' . $e->getMessage());
+
+        } catch (\Exception $e) {
+            \Log::error('Error updating chart data: ' . $e->getMessage());
+        }
     }
-}
 
 
 
@@ -59,6 +59,15 @@ class ChartComponent extends Component
 
     public function render()
     {
-        return view('livewire.chart-component');
+        $failedCount = $this->getCount('Failed');
+        $passedCount = $this->getCount('Passed');
+        $untestedCount = $this->getCount('Untested');
+
+        return view('livewire.chart-component', [
+            'failedCount' => $failedCount,
+            'passedCount' => $passedCount,
+            'untestedCount' => $untestedCount,
+        ]);
     }
+
 }

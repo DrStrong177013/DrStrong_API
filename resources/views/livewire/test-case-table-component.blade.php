@@ -1,62 +1,28 @@
-<div x-data="{
-        filter: 'all',
-        currentFilter: 'all',
-        showModal: false,  // Modal visibility state
-        selectedTestCase: null,  // Selected test case data
-        updateFilter(newFilter) {
-            this.currentFilter = this.filter;
-            this.filter = newFilter;
+<div>
+    <div class="filter-section">
+        <div class="filter-buttons" wire:ignore>
+            <button wire:click="setFilter('all')" class="filter-button filter-button-all" data-filter="all">All</button>
+            <button wire:click="setFilter('passed')" class="filter-button filter-button-passed" data-filter="passed">Passed</button>
+            <button wire:click="setFilter('failed')" class="filter-button filter-button-failed" data-filter="failed">Failed</button>
+            <button wire:click="setFilter('untested')" class="filter-button filter-button-untested"
+                data-filter="untested">Untested</button>
+        </div>
+    </div>
 
-            const rows = document.querySelectorAll('tr.result');
-            rows.forEach(row => {
-                row.style.opacity = '0';
-                row.style.transition = 'opacity 0.3s ease';
-            });
-
-            setTimeout(() => {
-                rows.forEach(row => {
-                    row.style.display = (this.filter === 'all' || row.classList.contains(this.filter)) ? '' : 'none';
-                    row.style.opacity = '1';
-                });
-            }, 300);
-        },
-        openModal(testCase) {
-            console.log('Opening modal...');  // Debugging
-            this.selectedTestCase = testCase;
-            this.showModal = true;
-        },
-        closeModal() {
-            console.log('Closing modal...');  // Debugging
-            this.showModal = false;
-            this.selectedTestCase = null;
-        },
-        hasVisibleRows() {
-            const rows = document.querySelectorAll('tr.result');
-            return Array.from(rows).some(row => row.style.display !== 'none');
-        }
-    }" @change-filter.window="updateFilter($event.detail.filter)" class="table-section">
-
-    <table class="test-case-table">
-        <thead>
-            <tr>
-                <th class="th_center border-radius-left">Result</th>
-                <th>Refs</th>
-                <th class="th_center">Method</th>
-                <th>Testcase</th>
-                <th class="th_center border-radius-right">Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if(isset($results))
-                @foreach ($results as $result)             
-                    <tr class="{{ $loop->even ? 'even' : 'odd' }} result {{ strtolower($result['Result']) ?? 'default-class' }}"
-                        @click="openModal({ 
-                                                            result: '{{ $result['Result'] ?? 'N/A' }}',
-                                                            refs: '{{ $result['Refs'] ?? 'N/A' }}',
-                                                            method: '{{ strtoupper($result['Method']) ?? 'N/A' }}',
-                                                            testcase: '{{ Str::limit($result['Testcase'], 85, '...') ?? 'N/A' }}',
-                                                            status: '{{ $result['ActualStatusCode'] ?? 'N/A' }}'
-                                                        })" style="cursor: pointer;">
+    <div class="table-section">
+        <table class="test-case-table">
+            <thead>
+                <tr>
+                    <th class="th_center border-radius-left">Result</th>
+                    <th>Refs</th>
+                    <th class="th_center">Method</th>
+                    <th>Testcase</th>
+                    <th class="th_center border-radius-right">Status</th>
+                </tr>
+            </thead>
+            <tbody class="tbody-testcase">
+                @foreach ($filteredResults as $result)
+                    <tr style="cursor: pointer;" wire:click="showModal({{ json_encode($result) }})">
                         <td class="result {{ strtolower($result['Result']) ?? 'default-class' }}" width="60px">
                             <div class="div_results th_center">{{ $result['Result'] ?? 'N/A' }}</div>
                         </td>
@@ -69,49 +35,108 @@
                             {{ Str::limit($result['Testcase'], 85, '...') ?? 'N/A' }}
                         </td>
                         <td class="status th_center" data-status="{{ $result['ActualStatusCode'] ?? 'N/A' }}" width="100px">
-                            {{ $result['ActualStatusCode'] ?? 'N/A' }}
+                            <div>
+                                {{ $result['ActualStatusCode'] ?? 'N/A' }}
+                            </div>
                         </td>
                     </tr>
                 @endforeach
-            @else
-                <tr>
-                    <td colspan="5" class="no-results th_center">No results found</td>
-                </tr>
-            @endif
-        </tbody>
-    </table>
+            </tbody>
+        </table>
 
-    <div id="noResultsMessage" class="no-results-message" x-show="!hasVisibleRows()">No test case found with selected
-        results.</div>
+        <!-- Modal -->
 
-    <!-- Modal -->
-    <div x-show="showModal" class="modal" x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-        x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-        style="display: none; position: fixed; top: 0; left: 0; z-index: 9999; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); align-items: center; justify-content: center;">
-        <div class="modal-content"
-            style="background-color: white; padding: 20px; border-radius: 8px; width: 400px; position: relative;">
-            <span class="close" @click="closeModal"
-                style="position: absolute; top: 10px; right: 20px; font-size: 24px; cursor: pointer;">&times;</span>
-            <template x-if="selectedTestCase">
-                <div>
-                    <h2>Test Case Details</h2>
-                    <p><strong>Result:</strong> <span x-text="selectedTestCase.result"></span></p>
-                    <p><strong>Refs:</strong> <span x-text="selectedTestCase.refs"></span></p>
-                    <p><strong>Method:</strong> <span x-text="selectedTestCase.method"></span></p>
-                    <p><strong>Testcase:</strong> <span x-text="selectedTestCase.testcase"></span></p>
-                    <p><strong>Status:</strong> <span x-text="selectedTestCase.status"></span></p>
-                </div>
-            </template>
+        <div id="modal" wire:ignore.self class="hidden">
+            <div class="modal-content">
+                <span>
+                    <div class="close" wire:click="closeModal">&times;</div>
+                </span>
+                @if($selectedTestCase)
+                    <h1 class="modal-info">
+                        {{ $selectedTestCase['Refs'] ?? 'N/A' }}
+                    </h1>
+                    <div class="modal-info">
+                        {{ $selectedTestCase['Testcase'] ?? 'N/A' }}
+                    </div>
+                    <div class="modal-info margin-top-30px">
+                        <span class="modal-header">Result:</span>
+                        {{ $selectedTestCase['Result'] ?? 'N/A' }}
+                    </div>
+                    <div class="modal-info">
+                        <span class="modal-header">Method:</span>
+                        {{ $selectedTestCase['Method'] ?? 'N/A' }}
+                    </div>
+                    <div class="modal-info">
+                        <span class="modal-header">Endpoint:</span>
+                        {{ $selectedTestCase['EndPoint'] ?? 'N/A' }}
+                    </div>
+                    <div class="modal-info">
+                        <span class="modal-header">Body</span>
+                        <p class="text_result_area">{{ $selectedTestCase['Body'] ?? 'N/A' }}</p>
+                    </div>
+                    <h2 class="margin-top-30px center">Expected</h2>
+                    <div class="div_Expected">
+                        <div class="modal-info">
+                            <span class="modal-header">Result</span>
+                            <pre class="text_result_area">{{ $selectedTestCase['ExpectedResult'] ?? 'N/A' }}</pre>
+                        </div>
+                        <div class="modal-info">
+                            <span class="modal-header">Status:</span>
+                            {{ $selectedTestCase['StatusCode'] ?? 'N/A' }}
+                        </div>
+                    </div>
+                    <h2 class="margin-top-30px center">Actual</h2>
+                    <div class="div_Actual">
+                        <div class="modal-info">
+                            <span class="modal-header ">Result</span>
+                            <pre class="text_result_area">{{ $selectedTestCase['ActualResponse'] ?? 'N/A' }}</pre>
+                        </div>
+                        <div class="modal-info">
+                            <span class="modal-header">Status:</span>
+                            {{ $selectedTestCase['ActualStatusCode'] ?? 'N/A' }}
+                        </div>
+                    </div>
+                @endif
+            </div>
         </div>
+
     </div>
 </div>
-
-@script
-<script>
-
+@push('scripts')
+    <script>
 
 
-</script>
-@endscript
+
+        //modal
+        document.addEventListener('livewire:initialized', function () {
+            Livewire.on('openModal', () => {
+                let modal = document.getElementById('modal');
+
+                // Kiểm tra và loại bỏ tất cả các lớp liên quan trước khi thêm lớp 'open'
+                if (modal.classList.contains('hidden')) {
+                    modal.classList.remove('hidden');
+                    console.log('Removed hidden:', modal.classList);
+                } else {
+                    console.log('Modal did not have hidden class');
+                }
+
+                modal.classList.add('open');
+                console.log('Added open:', modal.classList);
+
+                console.log('Open modal');
+            });
+
+            Livewire.on('closeModal', () => {
+                let modal = document.getElementById('modal');
+
+                modal.classList.remove('open');
+                console.log('Removed open:', modal.classList);
+
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    console.log('Added hidden:', modal.classList);
+                }, 300); // Thời gian delay khớp với transition trong CSS
+            });
+        });
+    </script>
+@endpush

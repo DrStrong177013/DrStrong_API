@@ -1,60 +1,186 @@
-/* index.css */
-.method-label {
-    font-weight: bold;
-    padding: 5px 10px;
-    border-radius: 5px;
-    color: white;
+/* ----------------- Global Styles ----------------- */
+body {
+    padding-bottom: 80px; /* Chừa khoảng trống tương đương với chiều cao của sidebar */
+    background-color: #111827;
+    color: #d1d5da;
+    font-family: Arial, sans-serif;
 }
 
-.method-label[data-method="get"] {
-    color: green;
+/* Custom scrollbar */
+body::-webkit-scrollbar {
+    width: 12px;
 }
 
-.method-label[data-method="post"] {
-    color: orange;
+body::-webkit-scrollbar-track {
+    background-color: #e5e5e5;
+    border-radius: 50px;
 }
 
-.method-label[data-method="delete"] {
-    color: red;
+body::-webkit-scrollbar-thumb {
+    border-radius: 50px;
+    border: solid #585858 4px;
+    background-color: floralwhite;
 }
 
-.method-label[data-method="put"] {
-    color: blue;
+/* ----------------- Table Styles ----------------- */
+.table-hover {
+    width: 100%;
+    border-collapse: separate;
 }
 
-.fade-in {
-    animation: fadeIn 3s infinite;
+.table-hover thead {
+    background-color: #374151;
+    color: floralwhite;
+    border: none;
+    border-radius: 5px 5px 0 0;
+    position: sticky !important;
+    top: 0;
+    z-index: 2;
+    font-size: larger;
+    display: table;
+    width: 100%;
+    table-layout: fixed; /* Fixes column width to be equal */
+}
+
+.table-hover tbody {
+    display: block;
+    max-height: 400px; /* Set max height for scrollable content */
+    overflow-y: auto;
+    width: 100%;
+}
+/* Thiết lập các thuộc tính của scrollbar */
+.table-hover tbody::-webkit-scrollbar {
+    width: 12px;
+}
+
+.table-hover tbody::-webkit-scrollbar-track {
+    background-color: #e5e5e5;
+    border-radius: 50px;
+}
+
+.table-hover tbody::-webkit-scrollbar-thumb {
+    border-radius: 50px;
+    border: solid #585858 4px;
+    background-color: floralwhite;
+    /* box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);  */
+}
+
+.table-hover tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed; /* Fixed layout to control column width */
+    font-size: larger;
+    border-bottom: 1px solid #ffffff2e;
+    border-bottom-width: none !important;
 }
 
 .table-hover tbody tr:hover {
-    background-color: #f5f5f5;
+    background: linear-gradient(90deg, rgba(26, 26, 89, 1) 22%, rgba(17, 24, 39, 1) 29%);
 }
+
+th, td {
+    padding: 10px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+/* Cố định chiều rộng cho cột thứ 2 và 3 */
+th:nth-child(2), td:nth-child(2) {
+    width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Thêm dấu ... nếu vượt quá chiều rộng */
+}
+
+th:nth-child(3), td:nth-child(3) {
+    width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Thêm dấu ... nếu vượt quá chiều rộng */
+    text-align: center;
+}
+
+th:first-child, td:first-child {
+    width: 30px;
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.table>:not(caption)>*>* {
+    border-bottom-width: 0;
+}
+/* ----------------- Label Styles ----------------- */
+.method-label {
+    font-weight: bold;
+    font-size: medium;
+    padding: 5px 10px;
+    display: flex;
+    justify-content: center;
+    text-align: center;
+}
+
+.method-label[data-method="get"] {
+    color: #2ecc71;
+}
+
+.method-label[data-method="post"] {
+    color: rgb(253, 149, 39);
+}
+
+.method-label[data-method="delete"] {
+    color: #e74c3c;
+}
+
+.method-label[data-method="put"] {
+    color: #2e65cc;
+}
+
+/* ----------------- Modal Styles ----------------- */
+.modal-header {
+    background-color: #374151;
+    color: white;
+    border: none;
+    font-size: larger;
+}
+
+.modal-body {
+    font-size: 17px;
+    color: floralwhite;
+    background-color: #111827;
+}
+
+/* ----------------- Button Styles ----------------- */
+.btn-run {
+    padding: 12px 30px;
+    margin-right: 4%;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: background-color 0.5s ease, cursor 0.3s ease;
+    color: #fff;
+    background-color: #007bff;
+}
+
+.btn-run:disabled {
+    cursor: not-allowed;
+    color: #fdfdfd;
+    background-color: #ccc;
+}
+
 .upload-sidebar {
-    background-color: #f1f3f5;
+    background-color: #374151;
     padding: 20px;
     display: flex;
     justify-content: flex-end;
     position: fixed;
     bottom: 0;
     width: 100%;
-    border-top: 1px solid #ced4da;
-    z-index: 10; /* Đảm bảo sidebar luôn ở trên */
+    z-index: 10;
     left: 0;
     right: 0;
 }
-.btn-run {
-    padding: 12px 30px;
-    margin-right: 4%;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 16px;
-    transition: background-color 0.5s ease, cursor 0.3s ease;
-}
 
-
+/* ----------------- Animation Styles ----------------- */
 .fade-in {
-    animation: fadeIn 0.5s ease-in-out forwards; /* Hiệu ứng chạy 1 lần */
+    animation: fadeIn 0.5s ease-in-out forwards;
 }
 
 @keyframes fadeIn {
@@ -62,9 +188,23 @@
     100% { opacity: 1; }
 }
 
+/* ----------------- Checkbox and Select All Styles ----------------- */
+#selectAll {
+    cursor: pointer;
+}
 
+input[type="checkbox"] {
+    margin-right: 10px;
+    cursor: pointer;
+}
 
-body {
-    /* Đảm bảo phần nội dung phía trên không bị sidebar che */
-    padding-bottom: 80px; /* Chừa khoảng trống tương đương với chiều cao của sidebar */
+/* Responsive table: Hide overflow on small screens */
+@media screen and (max-width: 768px) {
+    .table-hover thead, .table-hover tbody tr {
+        display: block;
+    }
+
+    .table-hover tbody {
+        overflow-x: auto;
+    }
 }

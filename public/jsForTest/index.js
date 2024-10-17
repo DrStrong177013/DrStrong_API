@@ -23,7 +23,6 @@ function setupCheckboxEvents() {
 }
 
 // Hàm bật/tắt nút Run dựa trên số lượng test case đã chọn
-// Hàm bật/tắt nút Run dựa trên số lượng test case đã chọn
 function toggleRunButton() {
     const runButton = document.getElementById('runButton');
     const selectedTestCasesCount = Object.values(selectedTestCases).filter(val => val).length; // Đếm số test case đã chọn
@@ -32,10 +31,12 @@ function toggleRunButton() {
     if (selectedTestCasesCount > 0) {
         runButton.disabled = false; // Bật nút Run
         runButton.style.cursor = "pointer"; // Đổi con trỏ chuột khi có thể nhấn
-        runButton.style.backgroundColor = "#398dd7"; // Đổi màu nền
+        runButton.style.color = "#fff";
+        runButton.style.backgroundColor = "#007bff"; // Đổi màu nền
     } else {
         runButton.disabled = true; // Disable nút Run
         runButton.style.cursor = "not-allowed"; // Con trỏ chuột không thể nhấn
+        runButton.style.color = "#fdfdfd";
         runButton.style.backgroundColor = "#ccc"; // Đổi màu nền sang xám
     }
 }
@@ -60,12 +61,16 @@ function renderTable() {
         row.classList.add('test-case-row');
         row.setAttribute('data-index', index + 1);
 
+
         let checkboxCell = document.createElement('td');
         checkboxCell.innerHTML = `<input type="checkbox" name="selected_cases[]" value="${index + 1}" ${isChecked}>`;
         row.appendChild(checkboxCell);
 
+
         testCase.forEach((data, key) => {
             let cell = document.createElement('td');
+            cell.style.color = "#d1d5da";
+   
             if (headers[key] === 'Method') {
                 cell.innerHTML = `<span class="method-label" data-method="${data.toLowerCase()}">${data.toUpperCase()}</span>`;
             } else {
@@ -102,15 +107,18 @@ function setupRowClickEvent() {
             }
 
             const detailModalBody = document.querySelector('#detailModal .modal-body');
+            detailModalBody.style.color = "floralwhite";
+            detailModalBody.style.backgroundColor = "#111827";
             detailModalBody.innerHTML = ''; // Xóa nội dung hiện tại của modal
 
             // Hiển thị các header và dữ liệu tương ứng
             remainingHeaders.forEach((header, key) => {
                 const value = testCaseData[key] || 'N/A';
-                detailModalBody.innerHTML += `<strong>${header}</strong>: ${value}<br>`;
+                detailModalBody.innerHTML += `<strong>${header}</strong>:  ${value}<br><br>`;
             });
 
             const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+            
             detailModal.show(); // Hiển thị modal
         });
     });
